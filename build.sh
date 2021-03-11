@@ -10,4 +10,8 @@ cd "$IMAGE"
 source config.sh
 
 docker build . -t "$DOCKER_REPO/$IMAGE:$TAG"
-docker push "$DOCKER_REPO/$IMAGE:$TAG"
+
+if [[ "${PUSH}" == "1" ]]; then
+	docker push "$DOCKER_REPO/$IMAGE:$TAG"
+fi
+

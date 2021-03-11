@@ -1,9 +1,15 @@
 # docker-images
+
 Repository with docker images
 
-Publish script usage:
 
+Build locally for testing
 ```
-./publish.sh aws-cli
+./build.sh aws-cli
+```
+
+Pushing image
+```
+PUSH=1 ./build.sh aws-cli
 ```
 
