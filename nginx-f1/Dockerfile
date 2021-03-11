@@ -79,8 +79,8 @@ RUN mkdir -p \
 
 # nginx-module-sts
 && NGINX_MODULES="${NGINX_MODULES} --add-module=${NGINX_TEMP_DIR}/nginx-module-sts --add-module=${NGINX_TEMP_DIR}/nginx-module-stream-sts" \
-&& git clone git://github.com/vozlt/nginx-module-sts.git --depth=1 ${NGINX_SETUP_DIR}/nginx-module-sts \
-&& git clone git://github.com/vozlt/nginx-module-stream-sts.git --depth=1 ${NGINX_SETUP_DIR}/nginx-module-stream-sts \
+&& git clone git://github.com/vozlt/nginx-module-sts.git --depth=1 ${NGINX_TEMP_DIR}/nginx-module-sts \
+&& git clone git://github.com/vozlt/nginx-module-stream-sts.git --depth=1 ${NGINX_TEMP_DIR}/nginx-module-stream-sts \
 
 # geoip module
 && curl -fSL https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz -o "${NGINX_SETUP_DIR}/geoip_module.tar" \
