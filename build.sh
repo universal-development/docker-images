@@ -3,6 +3,7 @@
 set -euxo pipefail
 
 DOCKER_REPO="${DOCKER_REPO:-denis256}"
+PUSH=${PUSH:-0}
 IMAGE="$1"
 
 cd "$IMAGE"
