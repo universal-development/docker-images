@@ -18,9 +18,9 @@ LABEL description="nginx built from source" \
       maintainer="JohnWu <v.la@live.cn>"
 
 ARG WITH_NDK=true
-ARG WITH_LUA=false
 ARG WITH_PURGE=true
 ARG WITH_UPSTREAM_CHECK=true
+ENV VTS_VERSION 0.1.18
 
 #china mirrors repos
 RUN echo "https://mirrors.ustc.edu.cn/alpine/latest-stable/main" > /etc/apk/repositories \
@@ -77,10 +77,9 @@ RUN mkdir -p \
 && cd "${NGINX_SETUP_DIR}/ngx_brotli" \
 && git submodule update --init \
 
-# nginx-module-sts
-&& NGINX_MODULES="${NGINX_MODULES} --add-module=${NGINX_TEMP_DIR}/nginx-module-sts --add-module=${NGINX_TEMP_DIR}/nginx-module-stream-sts" \
-&& git clone git://github.com/vozlt/nginx-module-sts.git --depth=1 ${NGINX_TEMP_DIR}/nginx-module-sts \
-&& git clone git://github.com/vozlt/nginx-module-stream-sts.git --depth=1 ${NGINX_TEMP_DIR}/nginx-module-stream-sts \
+# nginx-module-vts
+&& NGINX_MODULES="${NGINX_MODULES} --add-module=${NGINX_TEMP_DIR}/nginx-module-vts" \
+&& git clone https://github.com/vozlt/nginx-module-vts.git ${NGINX_TEMP_DIR}/nginx-module-vts \
 
 # geoip module
 && curl -fSL https://github.com/maxmind/geoip-api-c/releases/download/v${GEOIP_VERSION}/GeoIP-${GEOIP_VERSION}.tar.gz -o "${NGINX_SETUP_DIR}/geoip_module.tar" \
@@ -188,9 +187,11 @@ fi \
 && cd $NGINX_CONF_DIR \
 && rm -rf ${NGINX_SETUP_DIR}/
 
-COPY rootfs /
-RUN chmod 755 /sbin/entrypoint.sh
+COPY nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80/tcp 443/tcp
 
-ENTRYPOINT ["/sbin/entrypoint.sh"]
+STOPSIGNAL SIGTERM
+
+CMD ["nginx", "-g", "daemon off;"]
+
