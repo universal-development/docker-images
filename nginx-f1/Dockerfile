@@ -13,18 +13,10 @@ ENV UID=1000 GID=1000 \
     NGINX_TEMP_DIR=/var/cache/nginx \
     NGINX_SETUP_DIR=/usr/src/nginx
 
-LABEL description="nginx built from source" \
-      nginx="nginx ${NGINX_VERSION}" \
-      maintainer="JohnWu <v.la@live.cn>"
-
 ARG WITH_NDK=true
 ARG WITH_PURGE=true
 ARG WITH_UPSTREAM_CHECK=true
 ENV VTS_VERSION 0.1.18
-
-#china mirrors repos
-RUN echo "https://mirrors.ustc.edu.cn/alpine/latest-stable/main" > /etc/apk/repositories \
-&&  echo "https://mirrors.ustc.edu.cn/alpine/latest-stable/community" >> /etc/apk/repositories
 
 RUN mkdir -p \
     ${NGINX_SETUP_DIR} \
