@@ -15,4 +15,4 @@ RUN apt-get -qqy update \
  && apt-get -qqy clean \
  && rm -rf /var/lib/apt/*
 
-CMD ["mongodb-mms-automation-agent", "--config", "/mongodb-mms-monitoring.config"]
+CMD ["mongodb-mms-monitoring-agent", "--conf", "/mongodb-mms-monitoring.config"]
