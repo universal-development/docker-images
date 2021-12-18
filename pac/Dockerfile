@@ -29,4 +29,5 @@ RUN apt-get -y update \
 RUN wget https://sourceforge.net/projects/pacmanager/files/pac-4.0/pac-4.5.5.7-all.deb/download -O /tmp/pac-4.5.5.7-all.deb
 RUN dpkg -i /tmp/pac-4.5.5.7-all.deb 
 RUN apt-get -f install
-RUN  apt-get clean
+RUN apt-get install -y rdesktop
+RUN apt-get clean
