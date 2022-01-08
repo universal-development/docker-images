@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+export ANSIBLE_HOSTS=${ANSIBLE_HOSTS:-/ansible/hosts}
+
+export ANSIBLE_ARGS=${ANSIBLE_ARGS:-}
+
+ansible-playbook -i "${ANSIBLE_HOSTS}"  $1
+
