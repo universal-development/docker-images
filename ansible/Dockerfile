@@ -1,7 +1,7 @@
 FROM centos:8
 
 RUN dnf -y install epel-release
-RUN dnf -y install which nfs-utils rsync openssh-clients sshpass httpd-tools wget unzip
+RUN dnf -y install which nfs-utils rsync openssh-clients sshpass httpd-tools wget unzip gettext git curl
 
 RUN dnf -y install python3-pip
 
@@ -23,8 +23,6 @@ RUN wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.35.16/t
 RUN chmod +x /usr/bin/terragrunt
 
 RUN pip3 --no-cache-dir install --upgrade awscli
-
-RUN dnf -y install git curl
 
 RUN wget https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl -O /usr/bin/kubectl
 RUN chmod +x /usr/bin/kubectl
