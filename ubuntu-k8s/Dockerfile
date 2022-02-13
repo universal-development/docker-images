@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 USER root
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get install -y --no-install-recommends ca-certificates tzdata ssh telnet mc wget curl && apt-get clean
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get install -y --no-install-recommends ca-certificates tzdata ssh telnet mc wget curl gettext-base rsync && apt-get clean
 
 RUN mkdir /tmp/downloads
 
