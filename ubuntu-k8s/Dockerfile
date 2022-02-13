@@ -1,9 +1,19 @@
-FROM denis256/base-generic:0.0.2
+FROM ubuntu:20.04
 USER root
 
-RUN apt-get -y update && apt-get -y install ssh curl wget vim nano && apt-get clean
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get install -y --no-install-recommends ca-certificates tzdata ssh telnet mc wget curl && apt-get clean
 
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.22.0/bin/linux/amd64/kubectl
-RUN cp kubectl /usr/bin && chmod +x /usr/bin/kubectl
+RUN mkdir /tmp/downloads
 
-RUN wget https://get.helm.sh/helm-v3.7.0-linux-amd64.tar.gz && tar xfvz helm-v3.7.0-linux-amd64.tar.gz && cp linux-amd64/* /usr/bin
+WORKDIR /tmp/downloads
+
+RUN wget https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl -O /usr/bin/kubectl
+RUN chmod +x /usr/bin/kubectl
+
+RUN wget https://get.helm.sh/helm-v3.7.2-linux-amd64.tar.gz
+RUN tar xfvz helm-v3.7.2-linux-amd64.tar.gz
+RUN mv linux-amd64/helm /usr/local/bin/helm
+
+WORKDIR /
+RUN rm -rf /tmp/downloads
+
