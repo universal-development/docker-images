@@ -16,5 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Make check
+        run: make
       - name: Build image
         run: make container image=${{ github.event.inputs.name }}"
