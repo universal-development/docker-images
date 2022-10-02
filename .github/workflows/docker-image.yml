@@ -12,11 +12,10 @@ on:
           - aws-cli
 
 jobs:
-  greet:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Make check
-        run: make
+      - uses: actions/checkout@v3
       - name: Build image
         run: make container image=${{ github.event.inputs.name }}"
