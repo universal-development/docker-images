@@ -1,4 +1,3 @@
-#!/usr/bin/env groovy
 def choiceArray = []
 node {
     checkout scm
