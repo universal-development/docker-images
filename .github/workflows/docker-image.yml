@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Make
-        run: "make"
+      - name: Image name
+        run: "echo ${{ github.event.inputs.name }} "
       - name: Build image
-        run: make container image=${{ github.event.inputs.name }}"
+        run: "make container image=${{ github.event.inputs.name }}"
