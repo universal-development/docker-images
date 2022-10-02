@@ -21,3 +21,7 @@ jobs:
         run: "echo ${{ github.event.inputs.name }} "
       - name: Build image
         run: "make container image=${{ github.event.inputs.name }}"
+      - name: Login registry
+        run: "docker login -u ${{ secrets.CI_USER }} -p ${{ secrets.CI_PWD }}"
+      - name: Push image
+        run: "make push image=${{ github.event.inputs.name }}"
