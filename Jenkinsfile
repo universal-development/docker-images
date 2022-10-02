@@ -12,7 +12,6 @@ pipeline {
     agent { node { label 'wrench' } }
     parameters {
         parameters { choice(name: 'image', choices: choiceArray, description: 'Select image to build') }
-        booleanParam(defaultValue: false, name: 'PublishImage', description: 'Publish docker image')
     }
     options {
       buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
