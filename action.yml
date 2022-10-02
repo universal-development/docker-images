@@ -1,0 +1,20 @@
+name: Docker images building
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        type: choice
+        required: true
+        description: Image to build
+        options:
+          - ansible
+          - aws-cli
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build image
+        run: make container image=${{ github.event.inputs.name }}"
