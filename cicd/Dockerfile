@@ -30,17 +30,17 @@ RUN mv terraform /usr/local/bin/
 RUN terraform --version 
 
 # Download terragrunt
-ENV terragrunt_version=v0.38.12
+ENV terragrunt_version=v0.39.0
 RUN wget https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_linux_amd64 -O /usr/bin/terragrunt
 RUN chmod +x /usr/bin/terragrunt
 
 # Download kubectl
-ENV kubectl_version=v1.25.1
+ENV kubectl_version=v1.25.2
 RUN wget https://dl.k8s.io/release/${kubectl_version}/bin/linux/amd64/kubectl -O /usr/bin/kubectl
 RUN chmod +x /usr/bin/kubectl
 
 # Download helm
-ENV helm_version=v3.9.4
+ENV helm_version=v3.10.0
 RUN wget https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz
 RUN tar xfvz helm-${helm_version}-linux-amd64.tar.gz
 RUN mv linux-amd64/helm /usr/local/bin/helm
