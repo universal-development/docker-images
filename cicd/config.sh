@@ -1,2 +1,2 @@
 
-export TAG=0.0.3
+export TAG=0.0.4
