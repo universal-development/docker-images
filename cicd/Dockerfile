@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 
 RUN apt-get update && \
-    apt-get install -yq curl wget git ansible python3 python3-pip
+    apt-get install -yq curl wget git ansible python3 python3-pip rsync
 
 RUN apt-get install -yq python3-pip
 
