@@ -10,6 +10,22 @@ on:
         options:
           - ansible
           - aws-cli
+          - base-generic
+          - cicd
+          - jdk15-base
+          - jdk17-base
+          - mms-monitoring-agent
+          - nginx-f1
+          - nginx-module-stream-sts
+          - osslsigncode
+          - pac
+          - remmina
+          - ubuntu-18.04-ssh
+          - ubuntu-20.04-ssh
+          - ubuntu-22.04-ssh
+          - ubuntu-k8s
+          - ubuntu-ssh
+
 
 jobs:
   build:
