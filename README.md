@@ -2,14 +2,13 @@
 
 Repository with docker images
 
+Build locally for testing:
+```
+make container image=aws-cli
+```
 
-Build locally for testing
+Pushing image;
 ```
-./build.sh aws-cli
-```
-
-Pushing image
-```
-PUSH=1 ./build.sh aws-cli
+make push image=aws-cli
 ```
 
