@@ -5,7 +5,7 @@ IMAGE_TAG=$(shell image=$(image) ./.cicd/image-tag.sh)
 
 container:
 	echo "Image Tag: $(IMAGE_TAG)"
-	cd $(image) && docker build . -t $(image):local --squash;
+	cd $(image) && docker build . -t $(image):local ;
 
 push:
 	echo "Image Tag: $(IMAGE_TAG)"
