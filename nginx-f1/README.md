@@ -12,10 +12,11 @@ Important modules:
 
 # Examples
 
-docker run -p 8181:80 denis256/nginx-f1:0.0.1
+docker run -p 8181:80 denis256/nginx-f1:0.1.0
 
+docker run -v $(pwd)/example-simple/nginx.conf:/etc/nginx/nginx.conf -p 8080:8080 -p 9090:9090 denis256/nginx-f1:0.1.0
 
-docker run -v $(pwd)/example/nginx.conf:/etc/nginx/nginx.conf -p 0.0.0.0:9090:80 -p 0.0.0.0:9091:81 denis256/nginx-f1:0.0.1
+docker run -v $(pwd)/example/nginx.conf:/etc/nginx/nginx.conf -p 8080:8080 -p 9090:9090 denis256/nginx-f1:0.1.0
 
 docker run -v $(pwd)/example/html:/usr/share/nginx/html:ro -p 0.0.0.0:8181:80 nginx
 docker run -v $(pwd)/example/html:/usr/share/nginx/html:ro -p 0.0.0.0:8182:80 nginx
