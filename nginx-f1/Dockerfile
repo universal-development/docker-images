@@ -71,7 +71,7 @@ RUN cd /tmp && \
 
 # Build in additional Nginx modules
 RUN cd /tmp && \
-	git clone -b v0.1.18 git://github.com/vozlt/nginx-module-vts.git && \
+	git clone -b v0.1.18 https://github.com/vozlt/nginx-module-vts.git && \
 	git clone https://github.com/FRiCKLE/ngx_cache_purge.git && \
 	git clone https://github.com/simplresty/ngx_devel_kit.git && \
 	git clone https://github.com/leev/ngx_http_geoip2_module.git && \
