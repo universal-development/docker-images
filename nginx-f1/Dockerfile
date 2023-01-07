@@ -44,7 +44,8 @@ RUN apt-get install -y \
 	libaprutil1-dev \
 	libturbojpeg \
 	libcurl4-openssl-dev \
-    linux-headers-generic
+    linux-headers-generic \
+    inotify-tools
 
 # Build libpng
 RUN cd /tmp && \
@@ -142,8 +143,14 @@ RUN rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && \
 	mkdir -p /var/cache/ngx_pagespeed && \
 	chmod -R o+wr /var/cache/ngx_pagespeed
 
+COPY ./nginx-reloader.sh /usr/bin/nginx-reloader.sh
+COPY ./docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/bin/nginx-reloader.sh
+RUN chmod +x /usr/bin/docker-entrypoint.sh
 
 EXPOSE 80 8080
 WORKDIR /etc/nginx
 
+ENTRYPOINT [ "/usr/bin/docker-entrypoint.sh" ]
 CMD ["nginx", "-g", "daemon off;"]
