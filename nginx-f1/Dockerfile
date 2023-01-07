@@ -81,7 +81,7 @@ RUN cd /tmp && \
 	git clone https://github.com/openresty/srcache-nginx-module.git && \
 	git clone https://github.com/openresty/set-misc-nginx-module.git && \
 	git clone https://github.com/openresty/headers-more-nginx-module.git && \
-	git clone git://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
+	git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
 
 RUN ls -la /tmp/
 RUN ls -la /tmp/ngx_http_geoip2_module
