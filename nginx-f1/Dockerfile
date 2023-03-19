@@ -149,6 +149,9 @@ COPY ./docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
 RUN chmod +x /usr/bin/nginx-reloader.sh
 RUN chmod +x /usr/bin/docker-entrypoint.sh
 
+RUN mkdir -p /var/ngx_pagespeed_cache
+RUN chmod -R 777 /var/ngx_pagespeed_cache
+
 EXPOSE 80 8080
 WORKDIR /etc/nginx
 
