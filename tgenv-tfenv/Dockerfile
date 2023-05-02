@@ -7,6 +7,7 @@ RUN git clone https://github.com/cunymatthieu/tgenv.git ~/.tgenv
 
 ENV PATH="/root/.tgenv/bin:/root/.tfenv/bin:$PATH"
 
-RUN tfenv install v1.4.6 
+RUN tfenv install v1.4.6
+RUN tfenv use v1.4.6  
 RUN tgenv install 0.45.8
 
