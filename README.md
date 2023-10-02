@@ -7,7 +7,7 @@ Build locally for testing:
 make container image=aws-cli
 ```
 
-Pushing image;
+Pushing image:
 ```
 make push image=aws-cli
 ```
