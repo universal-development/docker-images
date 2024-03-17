@@ -27,6 +27,7 @@ on:
           - ubuntu-k8s
           - ubuntu-ssh
           - tgenv-tfenv
+          - ubuntu-22.04-toolbox
 
 jobs:
   build:
