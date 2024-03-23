@@ -16,23 +16,23 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set specific versions
-ENV RCLONE_VERSION="1.66.0"
-ENV RESTIC_VERSION="0.16.4"
-ENV MINIO_CLIENT_VERSION="RELEASE.2024-03-15T01-07-19Z"
+ENV RCLONE="1.66.0"
+ENV RESTIC="0.16.4"
+ENV MINIO_CLIENT="RELEASE.2024-03-15T01-07-19Z"
 
 # Download and install Rclone specific version
-RUN curl -L https://github.com/rclone/rclone/releases/download/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.deb -o rclone.deb \
+RUN curl -L https://github.com/rclone/rclone/releases/download/v${RCLONE}/rclone-v${RCLONE}-linux-amd64.deb -o rclone.deb \
     && dpkg -i rclone.deb \
     && rm rclone.deb
 
 # Download and install Restic specific version
-RUN curl -L https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_amd64.bz2 -o restic.bz2 \
+RUN curl -L https://github.com/restic/restic/releases/download/v${RESTIC}/restic_${RESTIC}_linux_amd64.bz2 -o restic.bz2 \
     && bzip2 -d restic.bz2 \
     && chmod +x restic \
     && mv restic /usr/local/bin/
 
 # Download and install MinIO Client specific version
-RUN curl -L https://dl.min.io/client/mc/release/linux-amd64/archive/mc.${MINIO_CLIENT_VERSION} -o mc \
+RUN curl -L https://dl.min.io/client/mc/release/linux-amd64/archive/mc.${MINIO_CLIENT} -o mc \
     && chmod +x mc \
     && mv mc /usr/local/bin/
 
