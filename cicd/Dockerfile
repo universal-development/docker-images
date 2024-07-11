@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -47,12 +47,12 @@ RUN echo 'export PATH="$HOME/.tgenv/bin:$PATH"' >> ~/.bash_profile
 ENV PATH=/root/.tfenv/bin:/root/.tgenv/bin:$PATH
 
 # Download kubectl
-ENV kubectl_version=v1.25.2
+ENV kubectl_version=v1.30.2
 RUN wget https://dl.k8s.io/release/${kubectl_version}/bin/linux/amd64/kubectl -O /usr/bin/kubectl
 RUN chmod +x /usr/bin/kubectl
 
 # Download helm
-ENV helm_version=v3.10.0
+ENV helm_version=v3.15.3
 RUN wget https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz
 RUN tar xfvz helm-${helm_version}-linux-amd64.tar.gz
 RUN mv linux-amd64/helm /usr/local/bin/helm
@@ -60,6 +60,6 @@ RUN mv linux-amd64/helm /usr/local/bin/helm
 WORKDIR /
 RUN rm -rf /tmp/downloads
 
-RUN tfenv install 1.7.0
-RUN tgenv install 0.54.20
-RUN tfenv use 1.7.0
+RUN tfenv install 1.9.0
+RUN tgenv install 0.60.1
+RUN tfenv use 1.9.0
