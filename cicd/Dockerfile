@@ -61,5 +61,5 @@ WORKDIR /
 RUN rm -rf /tmp/downloads
 
 RUN tfenv install 1.9.0
-RUN tgenv install 0.60.1
+RUN tgenv install 0.67.3
 RUN tfenv use 1.9.0
