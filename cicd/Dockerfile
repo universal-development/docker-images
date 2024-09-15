@@ -57,6 +57,13 @@ RUN wget https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz
 RUN tar xfvz helm-${helm_version}-linux-amd64.tar.gz
 RUN mv linux-amd64/helm /usr/local/bin/helm
 
+# install hcloud
+ENV HCLOUD_VERSION=v1.47.0
+RUN curl -L https://github.com/hetznercloud/cli/releases/download/${HCLOUD_VERSION}/hcloud-linux-amd64.tar.gz \
+    | tar -xz -C /usr/local/bin
+RUN chmod +x /usr/local/bin/hcloud
+RUN hcloud version
+
 WORKDIR /
 RUN rm -rf /tmp/downloads
 
