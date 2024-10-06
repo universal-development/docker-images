@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set specific versions
-ENV RCLONE="1.66.0"
+ENV RCLONE="1.68.1"
 ENV RESTIC="0.16.4"
 ENV MINIO_CLIENT="RELEASE.2024-03-15T01-07-19Z"
 
