@@ -1,4 +1,4 @@
-# Ubuntu 22.04 toolbox image
+# Ubuntu toolbox image
 
 * rsync
 * ssh
