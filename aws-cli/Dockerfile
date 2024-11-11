@@ -1,4 +1,4 @@
-FROM amazon/aws-cli:2.8.0
+FROM amazon/aws-cli:2.19.4
 
 RUN yum install -y rsync tar
 
