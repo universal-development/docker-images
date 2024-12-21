@@ -1,9 +1,7 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
-# Avoid prompts from apt during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update apt package lists
 RUN apt-get update && apt-get install -y \
     ssh \
     rsync \
@@ -13,12 +11,13 @@ RUN apt-get update && apt-get install -y \
     jq \
     p7zip-full \
     bzip2 \
+    gettext \
     && rm -rf /var/lib/apt/lists/*
 
 # Set specific versions
-ENV RCLONE="1.68.1"
-ENV RESTIC="0.16.4"
-ENV MINIO_CLIENT="RELEASE.2024-03-15T01-07-19Z"
+ENV RCLONE="1.68.2"
+ENV RESTIC="0.17.3"
+ENV MINIO_CLIENT="RELEASE.2024-11-07T00-52-20Z"
 
 # Download and install Rclone specific version
 RUN curl -L https://github.com/rclone/rclone/releases/download/v${RCLONE}/rclone-v${RCLONE}-linux-amd64.deb -o rclone.deb \
