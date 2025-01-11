@@ -3,10 +3,10 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update \
-  && apt-get -y install wget \
+  && apt-get -y install wget mc \
     openssh-client \
     telnet \
-    ftp \
+    ftp lftp rsync tar rclone \
     curl \
     rdesktop remmina mate-desktop-environment-extras freerdp2-x11 \
     sudo
