@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update \
-  && apt-get -y install wget mc \
+  && apt-get -y install wget mc screen \
     openssh-client \
     telnet \
     ftp lftp rsync tar rclone \
