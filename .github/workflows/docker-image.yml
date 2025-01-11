@@ -23,6 +23,7 @@ on:
           - ubuntu-ssh
           - tgenv-tfenv
           - ubuntu-toolbox
+          - linkhub
 
 jobs:
   build:
