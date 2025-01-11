@@ -6,7 +6,7 @@ Installed tools:
 * asbru-cm
 * remmina
 * rdesktop
-* xfree-rdp
+* xfreerdp
 * sftp
 * lftp
 
