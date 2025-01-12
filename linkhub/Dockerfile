@@ -13,6 +13,8 @@ RUN apt-get -y update \
 
 RUN apt-get -y install gnome-themes-standard arc-theme materia-gtk-theme breeze-gtk-theme numix-gtk-theme
 
+RUN apt-get -y install vim nano tree screen tmux htop restic
+
 RUN curl -1sLf 'https://dl.cloudsmith.io/public/asbru-cm/release/cfg/setup/bash.deb.sh' | sudo -E bash
 RUN apt-get install -y asbru-cm
 
