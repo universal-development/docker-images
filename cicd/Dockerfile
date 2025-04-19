@@ -5,11 +5,16 @@ ARG HELM_VERSION=v3.17.0
 ARG HCLOUD_VERSION=v1.50.0
 ARG TERRAFORM_VERSION=1.11.4
 ARG TERRAGRUNT_VERSION=0.77.20
+ARG CIVO_VERSION=1.2.1
+ARG ALIYUN_VERSION=3.0.270
 ARG USER_ID=1001
 
+# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH=/root/.tfenv/bin:/root/.tgenv/bin:$PATH
 
+# Install base packages and tools in a single layer
+# This reduces the number of layers and image size
 RUN apt-get update && apt-get install -yq --no-install-recommends \
     unzip \
     curl \
@@ -82,6 +87,22 @@ RUN curl -L https://github.com/hetznercloud/cli/releases/download/${HCLOUD_VERSI
     && chmod +x /usr/local/bin/hcloud \
     && hcloud version
 
+# Install Civo CLI
+RUN curl -sL https://github.com/civo/cli/releases/download/v${CIVO_VERSION}/civo-${CIVO_VERSION}-linux-amd64.tar.gz | tar -xz -C /tmp \
+    && mv /tmp/civo /usr/local/bin/ \
+    && chmod +x /usr/local/bin/civo \
+    && civo version
+
+# Install Azure CLI
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+    && az --version
+
+# Install Alibaba Cloud CLI
+RUN curl -sL https://aliyuncli.alicdn.com/aliyun-cli-linux-${ALIYUN_VERSION}-amd64.tgz | tar -xz -C /tmp \
+    && mv /tmp/aliyun /usr/local/bin/ \
+    && chmod +x /usr/local/bin/aliyun \
+    && aliyun --version
+
 # Install specific versions of Terraform and Terragrunt
 RUN tfenv install ${TERRAFORM_VERSION} \
     && tfenv use ${TERRAFORM_VERSION} \
@@ -95,7 +116,7 @@ RUN groupadd user && groupadd guide \
 WORKDIR /
 RUN rm -rf /tmp/downloads
 
-# Add information about symlinks to the bash profile
-RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc
+RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc \
+    && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun"' >> /etc/bash.bashrc
 
 CMD ["/bin/bash"]
