@@ -8,22 +8,25 @@ on:
         required: true
         description: Image to build
         options:
+          # BEGIN IMAGE OPTIONS
           - ansible
           - aws-cli
           - base-generic
           - cicd
           - jdk-base
+          - linkhub
           - mms-monitoring-agent
           - nginx-f1
           - nginx-module-stream-sts
           - osslsigncode
           - pac
           - remmina
+          - tgenv-tfenv
           - ubuntu-k8s
           - ubuntu-ssh
-          - tgenv-tfenv
+          - ubuntu-ssh-server
           - ubuntu-toolbox
-          - linkhub
+          # END IMAGE OPTIONS
 
 jobs:
   build:
@@ -33,11 +36,15 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: '0'
+      - name: Install just
+        run: |
+          curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+          just --version
       - name: Image name
-        run: "echo ${{ github.event.inputs.name }} "
+        run: echo "IMAGE=${{ github.event.inputs.name }}"
       - name: Build image
-        run: "make container image=${{ github.event.inputs.name }}"
+        run: just container ${{ github.event.inputs.name }}
       - name: Login registry
-        run: "docker login -u ${{ secrets.CI_USER }} -p ${{ secrets.CI_PWD }}"
+        run: docker login -u ${{ secrets.CI_USER }} -p ${{ secrets.CI_PWD }}
       - name: Push image
-        run: "make push image=${{ github.event.inputs.name }}"
+        run: just push ${{ github.event.inputs.name }}
