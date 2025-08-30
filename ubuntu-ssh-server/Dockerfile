@@ -1,9 +1,10 @@
 FROM ubuntu:22.04
 
-# Install openssh-server and prepare sshd
+# Install openssh-server, rsync, mc, rclone and prepare sshd
 RUN apt-get update && \
-    apt-get install -y openssh-server && \
-    mkdir /var/run/sshd
+    apt-get install -y openssh-server rsync mc rclone && \
+    mkdir /var/run/sshd && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
