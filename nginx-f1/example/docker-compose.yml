@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: denis256/nginx-f1:latest
+    container_name: nginx-f1-with-logrotate
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      # Mount nginx configuration
+      - ./nginx-with-logrotate.conf:/etc/nginx/nginx.conf:ro
+      # Mount logs directory for persistence
+      - ./logs:/var/log/nginx
+      # Mount SSH keys for remote archiving (if using SCP/RSYNC)
+      - ./ssh-keys:/root/.ssh:ro
+    environment:
+      # Basic logrotate settings
+      - ENABLE_LOGROTATE=true
+      - LOGROTATE_FREQUENCY=daily
+      - LOGROTATE_KEEP_DAYS=30
+      - LOGROTATE_ENABLE_ARCHIVE=true
+      - LOGROTATE_COMPRESS_ARCHIVE=true
+      
+      # Remote archiving settings (uncomment and configure as needed)
+      # - LOGROTATE_ENABLE_REMOTE=true
+      # - LOGROTATE_REMOTE_METHOD=scp
+      # - LOGROTATE_REMOTE_HOST=backup.example.com
+      # - LOGROTATE_REMOTE_USER=nginx-logs
+      # - LOGROTATE_REMOTE_PATH=/var/log/nginx-archive
+      # - LOGROTATE_SSH_PORT=22
+      
+      # S3 settings (alternative to SCP/RSYNC)
+      # - LOGROTATE_ENABLE_REMOTE=true
+      # - LOGROTATE_REMOTE_METHOD=s3
+      # - LOGROTATE_S3_BUCKET=my-nginx-logs
+      # - LOGROTATE_AWS_ACCESS_KEY_ID=your-access-key
+      # - LOGROTATE_AWS_SECRET_ACCESS_KEY=your-secret-key
+      # - LOGROTATE_AWS_DEFAULT_REGION=us-east-1
+      # - LOGROTATE_S3_PREFIX=nginx-logs
+      
+      # Cleanup settings
+      - LOGROTATE_CLEANUP_AFTER_REMOTE=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a backup service for demonstration
+  backup-server:
+    image: alpine:latest
+    container_name: nginx-backup-server
+    ports:
+      - "2222:22"
+    volumes:
+      - ./backup-data:/var/log/nginx-archive
+      - ./ssh-keys/backup-server:/root/.ssh
+    command: >
+      sh -c "
+        apk add --no-cache openssh-server &&
+        ssh-keygen -A &&
+        echo 'root:password' | chpasswd &&
+        sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+        /usr/sbin/sshd -D
+      "
+    profiles:
+      - backup
+

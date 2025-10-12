@@ -1,9 +1,9 @@
 FROM ubuntu:20.04
 
 ARG MAKE_J=4
-ARG NGINX_VERSION=1.19.7
+ARG NGINX_VERSION=1.22.1
 ARG PAGESPEED_VERSION=1.13.35.2
-ARG LIBPNG_VERSION=1.6.37
+ARG LIBPNG_VERSION=1.6.43
 
 ENV MAKE_J=${MAKE_J} \
 	NGINX_VERSION=${NGINX_VERSION} \
@@ -24,7 +24,8 @@ RUN apt-get install -y \
 	unzip \
 	bzip2 \
 	gperf \
-	python \
+	python3 \
+	python3-dev \
 	openssl \
 	libuuid1 \
 	apt-utils \
@@ -42,10 +43,13 @@ RUN apt-get install -y \
 	libmaxminddb-dev \
 	libpng-dev \
 	libaprutil1-dev \
-	libturbojpeg \
+	libturbojpeg0-dev \
 	libcurl4-openssl-dev \
     linux-headers-generic \
-    inotify-tools
+    inotify-tools \
+    logrotate \
+    cron \
+    supervisor
 
 # Build libpng
 RUN cd /tmp && \
@@ -76,9 +80,6 @@ RUN cd /tmp && \
 	git clone https://github.com/simplresty/ngx_devel_kit.git && \
 	git clone https://github.com/leev/ngx_http_geoip2_module.git && \
 	git clone https://github.com/openresty/echo-nginx-module.git && \
-	git clone https://github.com/onnimonni/redis-nginx-module.git && \
-	git clone https://github.com/openresty/redis2-nginx-module.git && \
-	git clone https://github.com/openresty/srcache-nginx-module.git && \
 	git clone https://github.com/openresty/set-misc-nginx-module.git && \
 	git clone https://github.com/openresty/headers-more-nginx-module.git && \
 	git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
@@ -90,7 +91,7 @@ RUN cd /tmp && \
 	curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar -zx && \
 	cd /tmp/nginx-${NGINX_VERSION} && \
     patch -p0 < /tmp/nginx_upstream_check_module-master/check_1.11.5+.patch; \
-	LD_LIBRARY_PATH=/tmp/incubator-pagespeed-ngx-${PAGESPEED_VERSION}/usr/lib:/usr/lib ./configure \
+	LD_LIBRARY_PATH=/tmp/incubator-pagespeed-ngx-${PAGESPEED_VERSION}-stable/usr/lib:/usr/lib ./configure \
 	--sbin-path=/usr/sbin \
 	--modules-path=/usr/lib/nginx \
 	--with-http_ssl_module \
@@ -124,9 +125,6 @@ RUN cd /tmp && \
 	--add-module=/tmp/ngx_cache_purge \
 	--add-module=/tmp/nginx-module-vts \
 	--add-module=/tmp/echo-nginx-module \
-	--add-module=/tmp/redis-nginx-module \
-	--add-module=/tmp/redis2-nginx-module \
-	--add-module=/tmp/srcache-nginx-module \
 	--add-module=/tmp/set-misc-nginx-module \
 	--add-module=/tmp/ngx_http_geoip2_module \
 	--add-module=/tmp/headers-more-nginx-module \
@@ -138,16 +136,23 @@ RUN cd /tmp && \
 # Clean-up
 RUN apt-get remove -y git
 RUN rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && \
-	ln -sf /dev/stdout /var/log/nginx/access.log && \
-	ln -sf /dev/stderr /var/log/nginx/error.log && \
 	mkdir -p /var/cache/ngx_pagespeed && \
-	chmod -R o+wr /var/cache/ngx_pagespeed
+	chmod -R o+wr /var/cache/ngx_pagespeed && \
+	mkdir -p /var/log/nginx/archive && \
+	touch /var/log/nginx/access.log /var/log/nginx/error.log && \
+	chown -R www-data:www-data /var/log/nginx
 
 COPY ./nginx-reloader.sh /usr/bin/nginx-reloader.sh
 COPY ./docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+COPY ./nginx-logrotate.conf /etc/logrotate.d/nginx
+COPY ./logrotate-manager.sh /usr/bin/logrotate-manager.sh
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY ./logrotate-daemon.sh /usr/bin/logrotate-daemon.sh
 
 RUN chmod +x /usr/bin/nginx-reloader.sh
 RUN chmod +x /usr/bin/docker-entrypoint.sh
+RUN chmod +x /usr/bin/logrotate-manager.sh
+RUN chmod +x /usr/bin/logrotate-daemon.sh
 
 RUN mkdir -p /var/ngx_pagespeed_cache
 RUN chmod -R 777 /var/ngx_pagespeed_cache
@@ -156,4 +161,4 @@ EXPOSE 80 8080
 WORKDIR /etc/nginx
 
 ENTRYPOINT [ "/usr/bin/docker-entrypoint.sh" ]
-CMD ["nginx", "-g", "daemon off;"]
+CMD []
