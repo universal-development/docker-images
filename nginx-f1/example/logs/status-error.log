@@ -1,1 +1,0 @@
-2025/10/12 19:39:20 [error] 18848#18848: *953 open() "/etc/nginx/html/favicon.ico" failed (2: No such file or directory), client: 192.168.224.1, server: status, request: "GET /favicon.ico HTTP/1.1", host: "localhost", referrer: "http://localhost/status"

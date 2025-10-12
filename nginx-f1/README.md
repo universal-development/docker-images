@@ -216,3 +216,75 @@ logrotate -f /etc/logrotate.d/nginx
 # Or use the manager script
 /usr/bin/logrotate-manager.sh postrotate
 ```
+
+## Logrotate Implementation Details
+
+### Process Management Solutions
+
+The logrotate implementation addresses the critical challenge of running logrotate in a Docker container where nginx is typically the main process (PID 1). Four different approaches are provided:
+
+#### 1. Supervisord Method (Default - Recommended)
+- **How it works**: Supervisord becomes PID 1 and manages all processes (nginx, cron, nginx-reloader)
+- **Benefits**: Process supervision, automatic restart, centralized logging, production-grade reliability
+- **Best for**: Production environments
+- **Resource usage**: Medium
+
+#### 2. Daemon Script Method (Lightweight)
+- **How it works**: Nginx is PID 1, logrotate runs as background daemon with sleep loop
+- **Benefits**: Lightweight, no additional packages, configurable interval
+- **Best for**: Development/lightweight deployments
+- **Resource usage**: Low
+
+#### 3. Cron Method (Traditional)
+- **How it works**: Nginx is PID 1, cron runs as background service
+- **Benefits**: Standard Unix approach, precise scheduling, familiar to sysadmins
+- **Limitations**: Less reliable, no automatic restart if cron crashes
+- **Best for**: Traditional Unix environments
+- **Resource usage**: Low
+
+#### 4. Disabled Method
+- **How it works**: Only nginx runs, no logrotate
+- **Use cases**: External log rotation, testing environments, custom log handling
+
+### Process Comparison
+
+| Method | Reliability | Resource Usage | Complexity | Restart on Failure |
+|--------|-------------|----------------|------------|-------------------|
+| **supervisord** | ⭐⭐⭐⭐⭐ | Medium | Medium | ✅ Yes |
+| **daemon** | ⭐⭐⭐⭐ | Low | Low | ⚠️ Limited |
+| **cron** | ⭐⭐⭐ | Low | Low | ❌ No |
+| **disabled** | N/A | Lowest | Lowest | N/A |
+
+### Implementation Files
+
+The logrotate functionality is implemented through several key files:
+
+- **`nginx-logrotate.conf`**: Logrotate configuration with environment variable support
+- **`logrotate-manager.sh`**: Management script with remote transfer capabilities (SCP, RSYNC, S3)
+- **`docker-entrypoint.sh`**: Enhanced entrypoint with logrotate setup and method selection
+- **`supervisord.conf`**: Process management configuration for supervisord method
+- **`logrotate-daemon.sh`**: Daemon script for lightweight method
+
+### Key Features
+
+1. **Automatic Log Rotation**: Daily rotation by default with configurable frequency and retention
+2. **Local Archiving**: Organized storage in `/var/log/nginx/archive` with optional compression
+3. **Remote Transfer**: Support for SCP, RSYNC, and S3 with SSH key authentication
+4. **Configuration Management**: Environment variable driven configuration with runtime updates
+5. **Comprehensive Logging**: All operations logged with timestamps and detailed status
+
+### Benefits
+
+- **Automated Log Management**: No manual intervention required
+- **Flexible Configuration**: Easy customization via environment variables
+- **Multiple Remote Options**: Choose the best storage method for your infrastructure
+- **Production Ready**: Comprehensive error handling and logging
+- **Resource Efficient**: Configurable compression and cleanup options
+- **Security**: SSH key authentication for remote transfers
+
+### Monitoring
+
+- Logrotate operations are logged to `/var/log/nginx/logrotate-manager.log`
+- Cron job execution logged to `/var/log/nginx/logrotate-cron.log`
+- Supervisord logs available in `/var/log/supervisor/`
+- All operations include timestamps and detailed status information
