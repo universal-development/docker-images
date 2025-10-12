@@ -1,4 +1,4 @@
-# Ansible container image
+# Ansible toolbox container image
 
 Image used for DevOps tasks including ansible and other tools
 
