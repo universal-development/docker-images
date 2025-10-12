@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # Set envs
 ENV DEBIAN_FRONTEND noninteractive
