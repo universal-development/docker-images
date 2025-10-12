@@ -1,12 +1,24 @@
-FROM centos:8
+FROM ubuntu:24.04
 
-RUN dnf -y install epel-release
-RUN dnf -y install which nfs-utils rsync openssh-clients sshpass httpd-tools wget unzip gettext git curl
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN dnf -y install python3-pip
-
-RUN dnf -y makecache
-RUN dnf -y install ansible
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ansible \
+        apache2-utils \
+        ca-certificates \
+        curl \
+        gettext-base \
+        git \
+        nfs-common \
+        openssh-client \
+        python3-pip \
+        rsync \
+        sshpass \
+        unzip \
+        wget \
+        which && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /tmp/downloads
 
@@ -22,7 +34,7 @@ RUN terraform --version
 RUN wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.35.16/terragrunt_linux_amd64 -O /usr/bin/terragrunt
 RUN chmod +x /usr/bin/terragrunt
 
-RUN pip3 --no-cache-dir install --upgrade awscli
+RUN pip3 --no-cache-dir install --break-system-packages --upgrade awscli
 
 RUN wget https://dl.k8s.io/release/v1.23.0/bin/linux/amd64/kubectl -O /usr/bin/kubectl
 RUN chmod +x /usr/bin/kubectl
