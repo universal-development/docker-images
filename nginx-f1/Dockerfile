@@ -45,7 +45,10 @@ RUN apt-get install -y \
 	libturbojpeg \
 	libcurl4-openssl-dev \
     linux-headers-generic \
-    inotify-tools
+    inotify-tools \
+    logrotate \
+    cron \
+    supervisor
 
 # Build libpng
 RUN cd /tmp && \
@@ -138,16 +141,23 @@ RUN cd /tmp && \
 # Clean-up
 RUN apt-get remove -y git
 RUN rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && \
-	ln -sf /dev/stdout /var/log/nginx/access.log && \
-	ln -sf /dev/stderr /var/log/nginx/error.log && \
 	mkdir -p /var/cache/ngx_pagespeed && \
-	chmod -R o+wr /var/cache/ngx_pagespeed
+	chmod -R o+wr /var/cache/ngx_pagespeed && \
+	mkdir -p /var/log/nginx/archive && \
+	touch /var/log/nginx/access.log /var/log/nginx/error.log && \
+	chown -R www-data:www-data /var/log/nginx
 
 COPY ./nginx-reloader.sh /usr/bin/nginx-reloader.sh
 COPY ./docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+COPY ./nginx-logrotate.conf /etc/logrotate.d/nginx
+COPY ./logrotate-manager.sh /usr/bin/logrotate-manager.sh
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY ./logrotate-daemon.sh /usr/bin/logrotate-daemon.sh
 
 RUN chmod +x /usr/bin/nginx-reloader.sh
 RUN chmod +x /usr/bin/docker-entrypoint.sh
+RUN chmod +x /usr/bin/logrotate-manager.sh
+RUN chmod +x /usr/bin/logrotate-daemon.sh
 
 RUN mkdir -p /var/ngx_pagespeed_cache
 RUN chmod -R 777 /var/ngx_pagespeed_cache
@@ -156,4 +166,4 @@ EXPOSE 80 8080
 WORKDIR /etc/nginx
 
 ENTRYPOINT [ "/usr/bin/docker-entrypoint.sh" ]
-CMD ["nginx", "-g", "daemon off;"]
+CMD []
