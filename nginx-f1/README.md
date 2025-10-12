@@ -1,290 +1,432 @@
-# nginx-f1
+# nginx-f1 🚀
 
-Container image for nginx f1 project with advanced logrotate capabilities
+A production-ready Nginx Docker image with advanced logrotate capabilities, Google PageSpeed optimization, and comprehensive monitoring features.
 
-Basic nginx setup for handling requests, generating statistics, and automatic log rotation with remote archiving support.
+[![Docker Image](https://img.shields.io/badge/docker-nginx--f1-blue.svg)](https://hub.docker.com/r/denis256/nginx-f1)
+[![Ubuntu](https://img.shields.io/badge/ubuntu-20.04%20LTS-orange.svg)](https://ubuntu.com)
+[![Nginx](https://img.shields.io/badge/nginx-1.22.1-green.svg)](https://nginx.org)
 
-## Features
+## ✨ Features
 
-- **Nginx with PageSpeed**: Optimized nginx with Google PageSpeed module
-- **Automatic Log Rotation**: Configurable logrotate with archiving and remote transfer
-- **Remote Log Archiving**: Support for SCP, RSYNC, and S3 remote storage
-- **Health Monitoring**: Upstream health checks and traffic statistics
-- **Configuration Reloading**: Automatic nginx reload on configuration changes
+- **🚀 High Performance**: Nginx 1.22.1 with Google PageSpeed module for optimal web performance
+- **📊 Advanced Monitoring**: Built-in VTS (Virtual Host Traffic Status) and upstream health checks
+- **🔄 Smart Log Rotation**: Configurable logrotate with local archiving and remote transfer (SCP/RSYNC/S3)
+- **⚡ Auto-Reload**: Automatic configuration reloading on file changes
+- **🛡️ Production Ready**: Multiple process management options with comprehensive error handling
+- **🔧 Highly Configurable**: Environment-driven configuration with extensive customization options
 
-## Important Modules
+## 📋 Version Information
 
-- nginx_upstream_check_module (https://github.com/yaoweibin/nginx_upstream_check_module)
-- nginx-module-stream-sts (https://github.com/vozlt/nginx-module-stream-sts)
-- Google PageSpeed module
-- VTS (Virtual Host Traffic Status) module
-- Various caching and optimization modules
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **Base Image** | Ubuntu 20.04 LTS | Focal Fossa with long-term support until 2025 |
+| **Nginx** | 1.22.1 | Latest compatible version with PageSpeed |
+| **PageSpeed Module** | 1.13.35.2 | Google PageSpeed optimization engine |
+| **libpng** | 1.6.43 | Latest PNG library with security patches |
+| **VTS Module** | v0.1.18 | Virtual Host Traffic Status monitoring |
 
-## Logrotate Configuration
+## 🔧 Included Modules
 
-The image includes comprehensive logrotate functionality that can be configured via environment variables:
+- **Google PageSpeed**: Automatic web performance optimization
+- **nginx_upstream_check_module**: Upstream server health monitoring
+- **nginx-module-vts**: Real-time traffic statistics
+- **ngx_devel_kit**: Development utilities
+- **ngx_cache_purge**: Cache purging capabilities
+- **echo-nginx-module**: Enhanced echo functionality
+- **set-misc-nginx-module**: Additional set operations
+- **ngx_http_geoip2_module**: GeoIP2 support with MaxMindDB
+- **headers-more-nginx-module**: Advanced header manipulation
+- **ngx_http_substitutions_filter_module**: Response substitution
+
+## ⚠️ Compatibility Notes
+
+- **Ubuntu 20.04**: Chosen for OpenSSL 1.1.1 compatibility with Nginx 1.22.1
+- **OpenSSL 3.0**: Ubuntu 24.04's OpenSSL 3.0 has deprecated functions that cause compilation failures
+- **PageSpeed Compatibility**: PageSpeed module 1.13.35.2 is compatible with Nginx 1.22.1 but not with newer versions (1.24+)
+- **Future Upgrades**: Consider upgrading PageSpeed module when migrating to newer Nginx versions
+
+## 🚀 Quick Start
 
 ### Basic Usage
 
 ```bash
-# Run with default logrotate settings
-docker run -p 8181:80 denis256/nginx-f1:latest
+# Run with default configuration
+docker run -d --name nginx-f1 -p 80:80 denis256/nginx-f1:latest
 
-# Run with custom logrotate configuration
-docker run -p 8181:80 \
-  -e ENABLE_LOGROTATE=true \
-  -e LOGROTATE_FREQUENCY=daily \
-  -e LOGROTATE_KEEP_DAYS=30 \
+# Run with custom nginx configuration
+docker run -d --name nginx-f1 \
+  -p 80:80 -p 8080:8080 -p 9090:9090 \
+  -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
   denis256/nginx-f1:latest
 ```
 
-### Advanced Logrotate with Remote Archiving
+### Docker Compose (Recommended)
+
+```yaml
+version: '3.8'
+services:
+  nginx:
+    image: denis256/nginx-f1:latest
+    container_name: nginx-f1
+    ports:
+      - "80:80"
+      - "8080:8080" 
+      - "9090:9090"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+    environment:
+      - ENABLE_LOGROTATE=true
+      - LOGROTATE_METHOD=supervisord
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### Access Points
+
+- **Main Application**: http://localhost:80
+- **Status Dashboard**: http://localhost:9090/status
+- **Upstream Health**: http://localhost:9090/upstream-status
+
+## 🔄 Advanced Logrotate Configuration
+
+The image includes comprehensive logrotate functionality with multiple process management options and remote archiving capabilities.
+
+### Basic Logrotate Setup
 
 ```bash
-# SCP remote archiving
-docker run -p 8181:80 \
+# Default logrotate (recommended for production)
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e ENABLE_LOGROTATE=true \
+  -e LOGROTATE_METHOD=supervisord \
+  denis256/nginx-f1:latest
+
+# Custom retention and frequency
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e ENABLE_LOGROTATE=true \
+  -e LOGROTATE_FREQUENCY=daily \
+  -e LOGROTATE_KEEP_DAYS=7 \
+  -e LOGROTATE_COMPRESS_ARCHIVE=true \
+  denis256/nginx-f1:latest
+```
+
+### Remote Archiving Examples
+
+#### SCP Archiving
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -v ./ssh-keys:/root/.ssh:ro \
   -e LOGROTATE_ENABLE_REMOTE=true \
   -e LOGROTATE_REMOTE_METHOD=scp \
   -e LOGROTATE_REMOTE_HOST=backup.example.com \
   -e LOGROTATE_REMOTE_USER=nginx-logs \
   -e LOGROTATE_REMOTE_PATH=/var/log/nginx-archive \
-  -v /path/to/ssh/key:/root/.ssh/id_rsa:ro \
   denis256/nginx-f1:latest
+```
 
-# S3 remote archiving
-docker run -p 8181:80 \
+#### S3 Archiving
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
   -e LOGROTATE_ENABLE_REMOTE=true \
   -e LOGROTATE_REMOTE_METHOD=s3 \
   -e LOGROTATE_S3_BUCKET=my-nginx-logs \
-  -e LOGROTATE_AWS_ACCESS_KEY_ID=your-key \
-  -e LOGROTATE_AWS_SECRET_ACCESS_KEY=your-secret \
+  -e LOGROTATE_AWS_ACCESS_KEY_ID=your-access-key \
+  -e LOGROTATE_AWS_SECRET_ACCESS_KEY=your-secret-key \
+  -e LOGROTATE_AWS_DEFAULT_REGION=us-east-1 \
   denis256/nginx-f1:latest
 ```
 
-### Environment Variables
+### Configuration Options
+
+| Variable | Default | Description | Options |
+|----------|---------|-------------|---------|
+| `ENABLE_LOGROTATE` | `true` | Enable/disable logrotate functionality | `true`, `false` |
+| `LOGROTATE_METHOD` | `supervisord` | Process management method | `supervisord`, `daemon`, `cron`, `disabled` |
+| `LOGROTATE_FREQUENCY` | `daily` | Rotation frequency | `daily`, `weekly`, `monthly` |
+| `LOGROTATE_KEEP_DAYS` | `30` | Number of rotated logs to keep | `1-365` |
+| `LOGROTATE_ENABLE_ARCHIVE` | `true` | Enable local archiving | `true`, `false` |
+| `LOGROTATE_ARCHIVE_DIR` | `/var/log/nginx/archive` | Local archive directory | Any valid path |
+| `LOGROTATE_COMPRESS_ARCHIVE` | `true` | Compress archived logs | `true`, `false` |
+
+### Remote Transfer Options
+
+| Variable | Default | Description | Required for |
+|----------|---------|-------------|--------------|
+| `LOGROTATE_ENABLE_REMOTE` | `false` | Enable remote transfer | All remote methods |
+| `LOGROTATE_REMOTE_METHOD` | `scp` | Remote transfer method | All remote methods |
+| `LOGROTATE_CLEANUP_AFTER_REMOTE` | `false` | Clean local archives after transfer | All remote methods |
+
+### SCP/RSYNC Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ENABLE_LOGROTATE` | `true` | Enable/disable logrotate functionality |
-| `LOGROTATE_METHOD` | `supervisord` | Logrotate method (supervisord, daemon, cron, disabled) |
-| `LOGROTATE_FREQUENCY` | `daily` | Rotation frequency (daily, weekly, monthly) |
-| `LOGROTATE_KEEP_DAYS` | `30` | Number of rotated logs to keep |
-| `LOGROTATE_ENABLE_ARCHIVE` | `true` | Enable local archiving |
-| `LOGROTATE_ARCHIVE_DIR` | `/var/log/nginx/archive` | Local archive directory |
-| `LOGROTATE_ENABLE_REMOTE` | `false` | Enable remote transfer |
-| `LOGROTATE_REMOTE_METHOD` | `scp` | Remote method (scp, rsync, s3) |
-| `LOGROTATE_COMPRESS_ARCHIVE` | `true` | Compress archived logs |
-| `LOGROTATE_CLEANUP_AFTER_REMOTE` | `false` | Clean local archives after remote transfer |
-| `LOGROTATE_INTERVAL` | `86400` | Interval in seconds for daemon method (24 hours) |
+| `LOGROTATE_REMOTE_HOST` | - | Remote server hostname/IP |
+| `LOGROTATE_REMOTE_USER` | - | SSH username for remote server |
+| `LOGROTATE_REMOTE_PATH` | - | Remote directory path |
+| `LOGROTATE_SSH_KEY_PATH` | `/root/.ssh/id_rsa` | Path to SSH private key |
+| `LOGROTATE_SSH_PORT` | `22` | SSH port number |
 
-### Logrotate Methods
+### S3 Configuration
 
-The image supports multiple ways to run logrotate:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOGROTATE_S3_BUCKET` | - | S3 bucket name |
+| `LOGROTATE_AWS_ACCESS_KEY_ID` | - | AWS access key ID |
+| `LOGROTATE_AWS_SECRET_ACCESS_KEY` | - | AWS secret access key |
+| `LOGROTATE_AWS_DEFAULT_REGION` | - | AWS region |
+| `LOGROTATE_S3_PREFIX` | - | S3 object key prefix |
 
-#### 1. Supervisord (Default - Recommended)
-- **Method**: `LOGROTATE_METHOD=supervisord`
-- **Pros**: Process management, automatic restart, logging
-- **Cons**: Requires supervisord package
-- **Best for**: Production environments
+### Process Management Methods
+
+The image supports multiple process management approaches for logrotate:
+
+| Method | Reliability | Resource Usage | Auto Restart | Best For |
+|--------|-------------|----------------|--------------|----------|
+| **supervisord** ⭐ | ⭐⭐⭐⭐⭐ | Medium | ✅ Yes | Production environments |
+| **daemon** | ⭐⭐⭐⭐ | Low | ⚠️ Limited | Lightweight deployments |
+| **cron** | ⭐⭐⭐ | Low | ❌ No | Traditional Unix environments |
+| **disabled** | N/A | Lowest | N/A | External log rotation |
+
+#### 1. Supervisord (Recommended for Production)
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e LOGROTATE_METHOD=supervisord \
+  denis256/nginx-f1:latest
+```
+- ✅ **Process supervision** with automatic restart
+- ✅ **Centralized logging** in `/var/log/supervisor/`
+- ✅ **Production-grade reliability**
+- ✅ **Easy monitoring** with `supervisorctl status`
+
+#### 2. Daemon Script (Lightweight)
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e LOGROTATE_METHOD=daemon \
+  -e LOGROTATE_INTERVAL=43200 \
+  denis256/nginx-f1:latest
+```
+- ✅ **Minimal resource usage**
+- ✅ **No additional packages**
+- ✅ **Configurable interval** (default: 24 hours)
+
+#### 3. Cron-based (Traditional)
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e LOGROTATE_METHOD=cron \
+  denis256/nginx-f1:latest
+```
+- ✅ **Standard Unix approach**
+- ✅ **Precise scheduling**
+- ⚠️ **No automatic restart** if cron fails
+
+#### 4. Disabled (External Management)
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e LOGROTATE_METHOD=disabled \
+  denis256/nginx-f1:latest
+```
+- ✅ **External log rotation** (host-based or other tools)
+- ✅ **Minimal overhead**
+
+## 📊 Monitoring & Logs
+
+### Status Endpoints
+
+- **Main Application**: http://localhost:80
+- **Status Dashboard**: http://localhost:9090/status
+- **Upstream Health**: http://localhost:9090/upstream-status
+
+### Log Files
+
+| Location | Description |
+|----------|-------------|
+| `/var/log/nginx/access.log` | Main access log |
+| `/var/log/nginx/error.log` | Main error log |
+| `/var/log/nginx/archive/` | Archived rotated logs |
+| `/var/log/nginx/logrotate-manager.log` | Logrotate manager logs |
+| `/var/log/nginx/logrotate-cron.log` | Cron job logs |
+| `/var/log/supervisor/` | Supervisord logs (when using supervisord method) |
+
+### Manual Operations
 
 ```bash
-docker run -e LOGROTATE_METHOD=supervisord denis256/nginx-f1:latest
+# Check nginx status
+docker exec nginx-f1 nginx -t
+
+# Reload nginx configuration
+docker exec nginx-f1 nginx -s reload
+
+# Manual log rotation
+docker exec nginx-f1 logrotate -f /etc/logrotate.d/nginx
+
+# Check logrotate status
+docker exec nginx-f1 tail -f /var/log/nginx/logrotate-manager.log
+
+# Check supervisord status (if using supervisord method)
+docker exec nginx-f1 supervisorctl status
 ```
 
-#### 2. Daemon Script
-- **Method**: `LOGROTATE_METHOD=daemon`
-- **Pros**: Lightweight, no additional packages
-- **Cons**: Simple process management
-- **Best for**: Lightweight deployments
+## 🛠️ Examples & Use Cases
 
-```bash
-docker run -e LOGROTATE_METHOD=daemon denis256/nginx-f1:latest
+### Production Setup with Remote Archiving
+
+```yaml
+version: '3.8'
+services:
+  nginx:
+    image: denis256/nginx-f1:latest
+    container_name: nginx-f1-production
+    ports:
+      - "80:80"
+      - "9090:9090"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs:/var/log/nginx
+      - ./ssh-keys:/root/.ssh:ro
+    environment:
+      - ENABLE_LOGROTATE=true
+      - LOGROTATE_METHOD=supervisord
+      - LOGROTATE_ENABLE_REMOTE=true
+      - LOGROTATE_REMOTE_METHOD=scp
+      - LOGROTATE_REMOTE_HOST=backup.example.com
+      - LOGROTATE_REMOTE_USER=nginx-logs
+      - LOGROTATE_REMOTE_PATH=/var/log/nginx-archive
+      - LOGROTATE_KEEP_DAYS=7
+      - LOGROTATE_COMPRESS_ARCHIVE=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 ```
 
-#### 3. Cron-based
-- **Method**: `LOGROTATE_METHOD=cron`
-- **Pros**: Standard cron scheduling
-- **Cons**: May not restart if cron fails
-- **Best for**: Traditional Unix environments
+### Development Setup (Minimal)
 
-```bash
-docker run -e LOGROTATE_METHOD=cron denis256/nginx-f1:latest
-```
-
-#### 4. Disabled
-- **Method**: `LOGROTATE_METHOD=disabled` or `ENABLE_LOGROTATE=false`
-- **Use case**: When you want to handle log rotation externally
-
-```bash
-docker run -e LOGROTATE_METHOD=disabled denis256/nginx-f1:latest
-```
-
-### Remote Transfer Methods
-
-#### SCP
-```bash
-LOGROTATE_REMOTE_HOST=backup.example.com
-LOGROTATE_REMOTE_USER=nginx-logs
-LOGROTATE_REMOTE_PATH=/var/log/nginx-archive
-LOGROTATE_SSH_KEY_PATH=/root/.ssh/id_rsa
-LOGROTATE_SSH_PORT=22
-```
-
-#### RSYNC
-```bash
-LOGROTATE_REMOTE_METHOD=rsync
-LOGROTATE_REMOTE_HOST=backup.example.com
-LOGROTATE_REMOTE_USER=nginx-logs
-LOGROTATE_REMOTE_PATH=/var/log/nginx-archive
-```
-
-#### S3
-```bash
-LOGROTATE_REMOTE_METHOD=s3
-LOGROTATE_S3_BUCKET=my-nginx-logs
-LOGROTATE_AWS_ACCESS_KEY_ID=your-key
-LOGROTATE_AWS_SECRET_ACCESS_KEY=your-secret
-LOGROTATE_AWS_DEFAULT_REGION=us-east-1
-LOGROTATE_S3_PREFIX=nginx-logs
-```
-
-## Examples
-
-### Basic Usage
-```bash
-docker run -p 8181:80 denis256/nginx-f1:latest
-
-docker run -v $(pwd)/example-simple/nginx.conf:/etc/nginx/nginx.conf -p 8080:8080 -p 9090:9090 denis256/nginx-f1:latest
-
-docker run -v $(pwd)/example/nginx.conf:/etc/nginx/nginx.conf -p 8080:8080 -p 9090:9090 denis256/nginx-f1:latest
-```
-
-### With Logrotate Configuration
-```bash
-# Use the example configuration with logrotate
-docker run -v $(pwd)/example/nginx-with-logrotate.conf:/etc/nginx/nginx.conf \
-  -v $(pwd)/example/logrotate.env:/etc/nginx/logrotate.env \
-  --env-file $(pwd)/example/logrotate.env \
-  -p 8080:8080 -p 9090:9090 denis256/nginx-f1:latest
-```
-
-### Docker Compose Example
 ```yaml
 version: '3.8'
 services:
   nginx:
     image: denis256/nginx-f1:latest
     ports:
-      - "80:80"
-      - "8080:8080"
-      - "9090:9090"
+      - "8080:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./logs:/var/log/nginx
-      - ./ssh-keys:/root/.ssh:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     environment:
-      - ENABLE_LOGROTATE=true
-      - LOGROTATE_ENABLE_REMOTE=true
-      - LOGROTATE_REMOTE_METHOD=scp
-      - LOGROTATE_REMOTE_HOST=backup.example.com
-      - LOGROTATE_REMOTE_USER=nginx-logs
-      - LOGROTATE_REMOTE_PATH=/var/log/nginx-archive
+      - ENABLE_LOGROTATE=false
 ```
 
-## Monitoring Endpoints
+### High-Availability Setup
 
-- **Upstream status check**: http://0.0.0.0:9090/status
-- **Upstream health check**: http://0.0.0.0:9090/upstream-status
-- **Client access**: http://0.0.0.0:9091
+```yaml
+version: '3.8'
+services:
+  nginx-1:
+    image: denis256/nginx-f1:latest
+    container_name: nginx-f1-ha-1
+    ports:
+      - "80:80"
+    environment:
+      - LOGROTATE_METHOD=supervisord
+    restart: unless-stopped
 
-## Log Files
+  nginx-2:
+    image: denis256/nginx-f1:latest
+    container_name: nginx-f1-ha-2
+    ports:
+      - "81:80"
+    environment:
+      - LOGROTATE_METHOD=supervisord
+    restart: unless-stopped
+```
 
-With logrotate enabled, logs are stored in:
-- `/var/log/nginx/access.log` - Main access log
-- `/var/log/nginx/error.log` - Main error log
-- `/var/log/nginx/archive/` - Archived rotated logs
-- `/var/log/nginx/logrotate-manager.log` - Logrotate manager logs
-- `/var/log/nginx/logrotate-cron.log` - Cron job logs
+## 📁 Project Structure
 
-## Manual Log Rotation
+```
+nginx-f1/
+├── Dockerfile                    # Main Docker image definition
+├── README.md                     # This documentation
+├── docker-entrypoint.sh          # Container entrypoint script
+├── nginx-logrotate.conf          # Logrotate configuration
+├── supervisord.conf              # Supervisord configuration
+├── logrotate-manager.sh          # Logrotate management script
+├── logrotate-daemon.sh           # Daemon-based logrotate script
+├── nginx-reloader.sh             # Configuration reloader script
+├── example/                      # Comprehensive examples
+│   ├── README.md                 # Example documentation
+│   ├── docker-compose.yml        # Complete Docker Compose setup
+│   ├── nginx-with-logrotate.conf # Enhanced nginx configuration
+│   ├── logrotate.env             # Environment configuration template
+│   └── html/                     # Sample web content
+└── example-simple/               # Basic examples
+    └── nginx.conf                # Simple nginx configuration
+```
 
-You can manually trigger log rotation:
+## 🔧 Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| **Container won't start** | Check nginx configuration: `docker exec nginx-f1 nginx -t` |
+| **Log rotation not working** | Verify `LOGROTATE_METHOD` and check logs: `docker logs nginx-f1` |
+| **Remote transfer failing** | Check SSH keys and connectivity: `docker exec nginx-f1 ssh -T user@host` |
+| **Permission denied** | Ensure proper file permissions and ownership |
+| **High memory usage** | Consider using `LOGROTATE_METHOD=daemon` for lightweight deployments |
+
+### Debug Commands
+
 ```bash
-# Inside the container
-logrotate -f /etc/logrotate.d/nginx
+# Check container logs
+docker logs nginx-f1
 
-# Or use the manager script
-/usr/bin/logrotate-manager.sh postrotate
+# Check nginx configuration
+docker exec nginx-f1 nginx -t
+
+# Check logrotate configuration
+docker exec nginx-f1 cat /etc/logrotate.d/nginx
+
+# Check process status
+docker exec nginx-f1 ps aux
+
+# Check disk usage
+docker exec nginx-f1 df -h
+
+# Monitor log files
+docker exec nginx-f1 tail -f /var/log/nginx/error.log
 ```
 
-## Logrotate Implementation Details
+## 📚 Additional Resources
 
-### Process Management Solutions
+- **Example Configurations**: See `example/` directory for complete setups
+- **Nginx Documentation**: [nginx.org](https://nginx.org/en/docs/)
+- **PageSpeed Module**: [modpagespeed.com](https://www.modpagespeed.com/)
+- **Docker Best Practices**: [docs.docker.com](https://docs.docker.com/develop/best-practices/)
 
-The logrotate implementation addresses the critical challenge of running logrotate in a Docker container where nginx is typically the main process (PID 1). Four different approaches are provided:
+## 🤝 Contributing
 
-#### 1. Supervisord Method (Default - Recommended)
-- **How it works**: Supervisord becomes PID 1 and manages all processes (nginx, cron, nginx-reloader)
-- **Benefits**: Process supervision, automatic restart, centralized logging, production-grade reliability
-- **Best for**: Production environments
-- **Resource usage**: Medium
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-#### 2. Daemon Script Method (Lightweight)
-- **How it works**: Nginx is PID 1, logrotate runs as background daemon with sleep loop
-- **Benefits**: Lightweight, no additional packages, configurable interval
-- **Best for**: Development/lightweight deployments
-- **Resource usage**: Low
+## 📄 License
 
-#### 3. Cron Method (Traditional)
-- **How it works**: Nginx is PID 1, cron runs as background service
-- **Benefits**: Standard Unix approach, precise scheduling, familiar to sysadmins
-- **Limitations**: Less reliable, no automatic restart if cron crashes
-- **Best for**: Traditional Unix environments
-- **Resource usage**: Low
+This project is open source. Please check the license file for details.
 
-#### 4. Disabled Method
-- **How it works**: Only nginx runs, no logrotate
-- **Use cases**: External log rotation, testing environments, custom log handling
+---
 
-### Process Comparison
-
-| Method | Reliability | Resource Usage | Complexity | Restart on Failure |
-|--------|-------------|----------------|------------|-------------------|
-| **supervisord** | ⭐⭐⭐⭐⭐ | Medium | Medium | ✅ Yes |
-| **daemon** | ⭐⭐⭐⭐ | Low | Low | ⚠️ Limited |
-| **cron** | ⭐⭐⭐ | Low | Low | ❌ No |
-| **disabled** | N/A | Lowest | Lowest | N/A |
-
-### Implementation Files
-
-The logrotate functionality is implemented through several key files:
-
-- **`nginx-logrotate.conf`**: Logrotate configuration with environment variable support
-- **`logrotate-manager.sh`**: Management script with remote transfer capabilities (SCP, RSYNC, S3)
-- **`docker-entrypoint.sh`**: Enhanced entrypoint with logrotate setup and method selection
-- **`supervisord.conf`**: Process management configuration for supervisord method
-- **`logrotate-daemon.sh`**: Daemon script for lightweight method
-
-### Key Features
-
-1. **Automatic Log Rotation**: Daily rotation by default with configurable frequency and retention
-2. **Local Archiving**: Organized storage in `/var/log/nginx/archive` with optional compression
-3. **Remote Transfer**: Support for SCP, RSYNC, and S3 with SSH key authentication
-4. **Configuration Management**: Environment variable driven configuration with runtime updates
-5. **Comprehensive Logging**: All operations logged with timestamps and detailed status
-
-### Benefits
-
-- **Automated Log Management**: No manual intervention required
-- **Flexible Configuration**: Easy customization via environment variables
-- **Multiple Remote Options**: Choose the best storage method for your infrastructure
-- **Production Ready**: Comprehensive error handling and logging
-- **Resource Efficient**: Configurable compression and cleanup options
-- **Security**: SSH key authentication for remote transfers
-
-### Monitoring
-
-- Logrotate operations are logged to `/var/log/nginx/logrotate-manager.log`
-- Cron job execution logged to `/var/log/nginx/logrotate-cron.log`
-- Supervisord logs available in `/var/log/supervisor/`
-- All operations include timestamps and detailed status information
+**Ready to deploy?** Start with the [Quick Start](#-quick-start) section above! 🚀
