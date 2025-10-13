@@ -1,14 +1,12 @@
 FROM ubuntu:20.04
 
 ARG MAKE_J=4
-ARG NGINX_VERSION=1.22.1
-ARG PAGESPEED_VERSION=1.13.35.2
+ARG NGINX_VERSION=1.29.2
 ARG LIBPNG_VERSION=1.6.43
 
 ENV MAKE_J=${MAKE_J} \
 	NGINX_VERSION=${NGINX_VERSION} \
 	LIBPNG_VERSION=${LIBPNG_VERSION} \
-	PAGESPEED_VERSION=${PAGESPEED_VERSION} \
     DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && \
@@ -59,16 +57,6 @@ RUN cd /tmp && \
 	make -j${MAKE_J} install V=0
 
 RUN cd /tmp && \
-	curl -O -L https://github.com/pagespeed/ngx_pagespeed/archive/v${PAGESPEED_VERSION}-stable.zip && \
-	unzip v${PAGESPEED_VERSION}-stable.zip
-
-RUN cd /tmp/incubator-pagespeed-ngx-${PAGESPEED_VERSION}-stable/ && \
-	psol_url=https://dl.google.com/dl/page-speed/psol/${PAGESPEED_VERSION}.tar.gz && \
-	[ -e scripts/format_binary_url.sh ] && psol_url=$(scripts/format_binary_url.sh PSOL_BINARY_URL) && \
-	echo "URL: ${psol_url}" && \
-	curl -L ${psol_url} | tar -xz
-
-RUN cd /tmp && \
 	curl -o nginx_upstream_check_module.tar.gz -L https://github.com/yaoweibin/nginx_upstream_check_module/archive/master.tar.gz  && \
 	tar xfvz nginx_upstream_check_module.tar.gz
 
@@ -91,7 +79,7 @@ RUN cd /tmp && \
 	curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar -zx && \
 	cd /tmp/nginx-${NGINX_VERSION} && \
     patch -p0 < /tmp/nginx_upstream_check_module-master/check_1.11.5+.patch; \
-	LD_LIBRARY_PATH=/tmp/incubator-pagespeed-ngx-${PAGESPEED_VERSION}-stable/usr/lib:/usr/lib ./configure \
+	./configure \
 	--sbin-path=/usr/sbin \
 	--modules-path=/usr/lib/nginx \
 	--with-http_ssl_module \
@@ -129,15 +117,12 @@ RUN cd /tmp && \
 	--add-module=/tmp/ngx_http_geoip2_module \
 	--add-module=/tmp/headers-more-nginx-module \
     --add-module=/tmp/nginx_upstream_check_module-master \
-	--add-module=/tmp/ngx_http_substitutions_filter_module \
-	--add-module=/tmp/incubator-pagespeed-ngx-${PAGESPEED_VERSION}-stable && \
+	--add-module=/tmp/ngx_http_substitutions_filter_module && \
 	make install --silent
 
 # Clean-up
 RUN apt-get remove -y git
 RUN rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && \
-	mkdir -p /var/cache/ngx_pagespeed && \
-	chmod -R o+wr /var/cache/ngx_pagespeed && \
 	mkdir -p /var/log/nginx/archive && \
 	touch /var/log/nginx/access.log /var/log/nginx/error.log && \
 	chown -R www-data:www-data /var/log/nginx
@@ -153,9 +138,6 @@ RUN chmod +x /usr/bin/nginx-reloader.sh
 RUN chmod +x /usr/bin/docker-entrypoint.sh
 RUN chmod +x /usr/bin/logrotate-manager.sh
 RUN chmod +x /usr/bin/logrotate-daemon.sh
-
-RUN mkdir -p /var/ngx_pagespeed_cache
-RUN chmod -R 777 /var/ngx_pagespeed_cache
 
 EXPOSE 80 8080
 WORKDIR /etc/nginx
