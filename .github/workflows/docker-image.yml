@@ -9,23 +9,23 @@ on:
         description: Image to build
         options:
           # BEGIN IMAGE OPTIONS
-        - osslsigncode
-        - nginx-module-stream-sts
-        - aws-cli
-        - nginx-f1
-        - remmina
-        - cicd
-        - tgenv-tfenv
-        - linkhub
-        - ubuntu-ssh-server
-        - toolbox
-        - mms-monitoring-agent
-        - pac
-        - ubuntu-toolbox
-        - base-generic
-        - jdk-base
-        - ubuntu-k8s
-        - ubuntu-ssh
+          - aws-cli
+          - base-generic
+          - cicd
+          - jdk-base
+          - linkhub
+          - mms-monitoring-agent
+          - nginx-f1
+          - nginx-module-stream-sts
+          - osslsigncode
+          - pac
+          - remmina
+          - tgenv-tfenv
+          - toolbox
+          - ubuntu-k8s
+          - ubuntu-ssh
+          - ubuntu-ssh-server
+          - ubuntu-toolbox
           # END IMAGE OPTIONS
 
 jobs:
