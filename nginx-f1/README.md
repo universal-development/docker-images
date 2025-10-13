@@ -1,17 +1,17 @@
 # nginx-f1 🚀
 
-A production-ready Nginx Docker image with advanced logrotate capabilities, Google PageSpeed optimization, and comprehensive monitoring features.
+A production-ready Nginx Docker image with advanced logrotate capabilities and comprehensive monitoring features.
 
 [![Docker Image](https://img.shields.io/badge/docker-nginx--f1-blue.svg)](https://hub.docker.com/r/denis256/nginx-f1)
 [![Ubuntu](https://img.shields.io/badge/ubuntu-20.04%20LTS-orange.svg)](https://ubuntu.com)
-[![Nginx](https://img.shields.io/badge/nginx-1.22.1-green.svg)](https://nginx.org)
+[![Nginx](https://img.shields.io/badge/nginx-1.29.2-green.svg)](https://nginx.org)
 
 ## ✨ Features
 
-- **🚀 High Performance**: Nginx 1.22.1 with Google PageSpeed module for optimal web performance
+- **🚀 High Performance**: Nginx 1.29.2 built from source with tuned upstream health checks and caching helpers
 - **📊 Advanced Monitoring**: Built-in VTS (Virtual Host Traffic Status) and upstream health checks
 - **🔄 Smart Log Rotation**: Configurable logrotate with local archiving and remote transfer (SCP/RSYNC/S3)
-- **⚡ Auto-Reload**: Automatic configuration reloading on file changes
+- **⚡ Auto-Reload**: Automatic configuration reloading (reloader watches `/etc/nginx` by default, ignoring swap/log/tar.gz updates; override with `WATCH_DIR`)
 - **🛡️ Production Ready**: Multiple process management options with comprehensive error handling
 - **🔧 Highly Configurable**: Environment-driven configuration with extensive customization options
 
@@ -20,14 +20,12 @@ A production-ready Nginx Docker image with advanced logrotate capabilities, Goog
 | Component | Version | Description |
 |-----------|---------|-------------|
 | **Base Image** | Ubuntu 20.04 LTS | Focal Fossa with long-term support until 2025 |
-| **Nginx** | 1.22.1 | Latest compatible version with PageSpeed |
-| **PageSpeed Module** | 1.13.35.2 | Google PageSpeed optimization engine |
+| **Nginx** | 1.29.2 | Latest mainline release with custom module stack |
 | **libpng** | 1.6.43 | Latest PNG library with security patches |
 | **VTS Module** | v0.1.18 | Virtual Host Traffic Status monitoring |
 
 ## 🔧 Included Modules
 
-- **Google PageSpeed**: Automatic web performance optimization
 - **nginx_upstream_check_module**: Upstream server health monitoring
 - **nginx-module-vts**: Real-time traffic statistics
 - **ngx_devel_kit**: Development utilities
@@ -40,10 +38,10 @@ A production-ready Nginx Docker image with advanced logrotate capabilities, Goog
 
 ## ⚠️ Compatibility Notes
 
-- **Ubuntu 20.04**: Chosen for OpenSSL 1.1.1 compatibility with Nginx 1.22.1
+- **Ubuntu 20.04**: Chosen for OpenSSL 1.1.1 compatibility with Nginx 1.29.2
 - **OpenSSL 3.0**: Ubuntu 24.04's OpenSSL 3.0 has deprecated functions that cause compilation failures
-- **PageSpeed Compatibility**: PageSpeed module 1.13.35.2 is compatible with Nginx 1.22.1 but not with newer versions (1.24+)
-- **Future Upgrades**: Consider upgrading PageSpeed module when migrating to newer Nginx versions
+- **Module Compatibility**: The bundled third-party modules have been validated against Nginx 1.29.2
+- **Future Upgrades**: Review third-party modules when moving to newer Nginx releases
 
 ## 🚀 Quick Start
 
@@ -412,7 +410,6 @@ docker exec nginx-f1 tail -f /var/log/nginx/error.log
 
 - **Example Configurations**: See `example/` directory for complete setups
 - **Nginx Documentation**: [nginx.org](https://nginx.org/en/docs/)
-- **PageSpeed Module**: [modpagespeed.com](https://www.modpagespeed.com/)
 - **Docker Best Practices**: [docs.docker.com](https://docs.docker.com/develop/best-practices/)
 
 ## 🤝 Contributing
