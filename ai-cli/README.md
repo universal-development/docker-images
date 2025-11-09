@@ -22,9 +22,17 @@ Generate version tag based on installed tool versions:
 
 This will:
 1. Build image locally
-2. Extract versions of codex, claude-code, and copilot
-3. Generate combined tag (e.g., `codex-1.0.0_claude-2.1.0_copilot-1.5.0`)
+2. Extract versions of claude-code, codex, and copilot
+3. Generate combined tag (e.g., `claude-2.0.36_codex-0.56.0_copilot-0.0.354`)
+   - Apps sorted alphabetically: claude, codex, copilot
 4. Update `config.sh` with generated tag
+5. Create git tag `ai-cli-<TAG>`
+6. Display push command for publishing
+
+Then push the tag:
+```bash
+git push origin ai-cli-<TAG>
+```
 
 ## Build
 
