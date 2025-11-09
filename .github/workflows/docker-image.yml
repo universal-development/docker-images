@@ -9,6 +9,7 @@ on:
         description: Image to build
         options:
           # BEGIN IMAGE OPTIONS
+          - ai-cli
           - aws-cli
           - base-generic
           - cicd
