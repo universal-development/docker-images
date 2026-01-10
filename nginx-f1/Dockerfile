@@ -133,11 +133,13 @@ COPY ./nginx-logrotate.conf /etc/logrotate.d/nginx
 COPY ./logrotate-manager.sh /usr/bin/logrotate-manager.sh
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY ./logrotate-daemon.sh /usr/bin/logrotate-daemon.sh
+COPY ./disk-cleanup.sh /usr/bin/disk-cleanup.sh
 
 RUN chmod +x /usr/bin/nginx-reloader.sh
 RUN chmod +x /usr/bin/docker-entrypoint.sh
 RUN chmod +x /usr/bin/logrotate-manager.sh
 RUN chmod +x /usr/bin/logrotate-daemon.sh
+RUN chmod +x /usr/bin/disk-cleanup.sh
 
 EXPOSE 80 8080
 WORKDIR /etc/nginx

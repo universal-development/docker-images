@@ -11,6 +11,7 @@ A production-ready Nginx Docker image with advanced logrotate capabilities and c
 - **🚀 High Performance**: Nginx 1.29.2 built from source with tuned upstream health checks and caching helpers
 - **📊 Advanced Monitoring**: Built-in VTS (Virtual Host Traffic Status) and upstream health checks
 - **🔄 Smart Log Rotation**: Configurable logrotate with local archiving and remote transfer (SCP/RSYNC/S3)
+- **🗑️ Disk Space Protection**: Optional aggressive cleanup daemon prevents disk exhaustion
 - **⚡ Auto-Reload**: Automatic configuration reloading (reloader watches `/etc/nginx` by default, ignoring
   swap/log/tar.gz updates; override with `WATCH_DIR`)
 - **🛡️ Production Ready**: Multiple process management options with comprehensive error handling
@@ -250,6 +251,103 @@ docker run -d --name nginx-f1 \
 - ✅ **External log rotation** (host-based or other tools)
 - ✅ **Minimal overhead**
 
+## 🗑️ Disk Space Cleanup
+
+The image includes an optional disk-space monitoring daemon that proactively cleans old logs when disk space gets low. This prevents disk exhaustion in high-traffic environments.
+
+### How It Works
+
+The `disk-cleanup` daemon runs as a background process (managed by supervisord) that:
+
+1. **Monitors disk space** every N seconds (default: 60s)
+2. **Triggers cleanup** when free space drops below threshold (default: 500MB)
+3. **Deletes old files** in priority order until target free space reached (default: 1000MB)
+4. **Emergency mode** truncates active logs if space critically low (default: <100MB)
+
+### Cleanup Priority Order
+
+When cleanup triggers, files are deleted in this order (oldest first within each category):
+
+| Priority | Location | Files | Description |
+|----------|----------|-------|-------------|
+| 1 | `/var/log/nginx/archive/` | `*.tar.gz`, `*.gz` | Archived rotated logs |
+| 2 | `/var/log/nginx/` | `*.log.*` | Rotated nginx logs |
+| 3 | `/var/log/nginx/*/` | `*.log.*` | Nested rotated logs |
+| 4 | `/var/log/supervisor/` | `*.log.*` | Supervisor backup logs |
+| 5 | **EMERGENCY** | `access.log`, `error.log` | Truncate active logs + signal nginx |
+
+### Enable Disk Cleanup
+
+```bash
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e ENABLE_DISK_CLEANUP=true \
+  -e DISK_CLEANUP_THRESHOLD_MB=500 \
+  -e DISK_CLEANUP_TARGET_MB=1000 \
+  denis256/nginx-f1:latest
+```
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_DISK_CLEANUP` | `false` | Enable disk cleanup daemon |
+| `DISK_CLEANUP_THRESHOLD_MB` | `500` | Start cleanup when free space below this (MB) |
+| `DISK_CLEANUP_TARGET_MB` | `1000` | Target free space after cleanup (MB) |
+| `DISK_CLEANUP_INTERVAL` | `60` | Check interval in seconds |
+| `DISK_CLEANUP_EMERGENCY_MB` | `100` | Emergency threshold - truncates active logs |
+| `DISK_CLEANUP_DRY_RUN` | `false` | Log what would be deleted without deleting |
+
+### Docker Compose Example
+
+```yaml
+version: '3.8'
+services:
+  nginx:
+    image: denis256/nginx-f1:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./logs:/var/log/nginx
+    environment:
+      - ENABLE_LOGROTATE=true
+      - LOGROTATE_KEEP_DAYS=7
+      - ENABLE_DISK_CLEANUP=true
+      - DISK_CLEANUP_THRESHOLD_MB=500
+      - DISK_CLEANUP_TARGET_MB=1000
+      - DISK_CLEANUP_INTERVAL=60
+```
+
+### Monitoring Disk Cleanup
+
+```bash
+# Check disk cleanup daemon status
+docker exec nginx-f1 supervisorctl status disk-cleanup
+
+# View cleanup logs
+docker exec nginx-f1 tail -f /var/log/nginx/disk-cleanup.log
+
+# Test with dry-run mode (logs actions without deleting)
+docker run -d --name nginx-test \
+  -e ENABLE_DISK_CLEANUP=true \
+  -e DISK_CLEANUP_DRY_RUN=true \
+  denis256/nginx-f1:latest
+```
+
+### Example Log Output
+
+```
+2024-01-15 10:30:00 - Disk cleanup daemon started
+2024-01-15 10:30:00 - Config: threshold=500MB target=1000MB interval=60s emergency=100MB dry_run=false
+2024-01-15 10:30:00 - Initial check: 450MB free
+2024-01-15 10:30:00 - Cleanup triggered. Free: 450MB, Threshold: 500MB, Target: 1000MB
+2024-01-15 10:30:00 - Cleaning archive directory: /var/log/nginx/archive
+2024-01-15 10:30:00 - Deleted: /var/log/nginx/archive/nginx-logs-20240110.tar.gz (150MB freed)
+2024-01-15 10:30:01 - Deleted: /var/log/nginx/archive/nginx-logs-20240111.tar.gz (200MB freed)
+2024-01-15 10:30:01 - Target space reached, stopping archive cleanup
+2024-01-15 10:30:01 - Cleanup complete. Free: 1050MB
+```
+
 ## 📊 Monitoring & Logs
 
 ### Status Endpoints
@@ -267,6 +365,7 @@ docker run -d --name nginx-f1 \
 | `/var/log/nginx/archive/`              | Archived rotated logs                            |
 | `/var/log/nginx/logrotate-manager.log` | Logrotate manager logs                           |
 | `/var/log/nginx/logrotate-cron.log`    | Cron job logs                                    |
+| `/var/log/nginx/disk-cleanup.log`      | Disk cleanup daemon logs                         |
 | `/var/log/supervisor/`                 | Supervisord logs (when using supervisord method) |
 
 ### Manual Operations
@@ -373,6 +472,7 @@ nginx-f1/
 ├── supervisord.conf              # Supervisord configuration
 ├── logrotate-manager.sh          # Logrotate management script
 ├── logrotate-daemon.sh           # Daemon-based logrotate script
+├── disk-cleanup.sh               # Disk space cleanup daemon
 ├── nginx-reloader.sh             # Configuration reloader script
 ├── example/                      # Comprehensive examples
 │   ├── README.md                 # Example documentation
@@ -395,6 +495,7 @@ nginx-f1/
 | **Remote transfer failing**  | Check SSH keys and connectivity: `docker exec nginx-f1 ssh -T user@host` |
 | **Permission denied**        | Ensure proper file permissions and ownership                             |
 | **High memory usage**        | Consider using `LOGROTATE_METHOD=daemon` for lightweight deployments     |
+| **Disk full / logs growing** | Enable `ENABLE_DISK_CLEANUP=true` with appropriate thresholds            |
 
 ### Debug Commands
 
@@ -413,6 +514,10 @@ docker exec nginx-f1 ps aux
 
 # Check disk usage
 docker exec nginx-f1 df -h
+
+# Check disk cleanup status
+docker exec nginx-f1 supervisorctl status disk-cleanup
+docker exec nginx-f1 tail -f /var/log/nginx/disk-cleanup.log
 
 # Monitor log files
 docker exec nginx-f1 tail -f /var/log/nginx/error.log

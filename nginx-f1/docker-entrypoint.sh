@@ -5,8 +5,19 @@ setup_logrotate_cron() {
     if [ "${ENABLE_LOGROTATE:-true}" = "true" ]; then
         # Create logrotate cron job
         echo "0 0 * * * /usr/sbin/logrotate -f /etc/logrotate.d/nginx >> /var/log/nginx/logrotate-cron.log 2>&1" > /etc/cron.d/nginx-logrotate
-        
+
         echo "Logrotate cron job configured"
+    fi
+}
+
+# Function to setup disk cleanup daemon
+setup_disk_cleanup() {
+    if [ "${ENABLE_DISK_CLEANUP:-false}" = "true" ]; then
+        echo "Disk cleanup enabled (threshold: ${DISK_CLEANUP_THRESHOLD_MB:-500}MB, target: ${DISK_CLEANUP_TARGET_MB:-1000}MB)"
+        # Enable disk-cleanup autostart in supervisord config
+        if [ -f /etc/supervisor/conf.d/supervisord.conf ]; then
+            sed -i '/\[program:disk-cleanup\]/,/priority=180/{s/autostart=false/autostart=true/}' /etc/supervisor/conf.d/supervisord.conf
+        fi
     fi
 }
 
@@ -64,6 +75,7 @@ should_use_supervisord() {
 setup_log_directories
 configure_logrotate
 setup_logrotate_cron
+setup_disk_cleanup
 
 # Determine logrotate method and start accordingly
 if [ "${ENABLE_LOGROTATE:-true}" != "true" ]; then
