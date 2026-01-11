@@ -12,8 +12,7 @@ A production-ready Nginx Docker image with advanced logrotate capabilities and c
 - **📊 Advanced Monitoring**: Built-in VTS (Virtual Host Traffic Status) and upstream health checks
 - **🔄 Smart Log Rotation**: Configurable logrotate with local archiving and remote transfer (SCP/RSYNC/S3)
 - **🗑️ Disk Space Protection**: Optional aggressive cleanup daemon prevents disk exhaustion
-- **⚡ Auto-Reload**: Automatic configuration reloading (reloader watches `/etc/nginx` by default, ignoring
-  swap/log/tar.gz updates; override with `WATCH_DIR`)
+- **⚡ Auto-Reload**: Automatic configuration reloading on `*.conf` file changes (watches `/etc/nginx` by default)
 - **🛡️ Production Ready**: Multiple process management options with comprehensive error handling
 - **🔧 Highly Configurable**: Environment-driven configuration with extensive customization options
 
@@ -348,6 +347,56 @@ docker run -d --name nginx-test \
 2024-01-15 10:30:01 - Cleanup complete. Free: 1050MB
 ```
 
+## ⚡ Auto-Reload Configuration
+
+The `nginx-reloader` daemon watches for configuration file changes and automatically reloads nginx when `*.conf` files are modified.
+
+### How It Works
+
+1. **Watches directory** using `inotifywait` (default: `/etc/nginx`)
+2. **Filters by extension** - only `*.conf` files trigger reload
+3. **Validates config** - runs `nginx -t` before reloading
+4. **Safe reload** - skips reload if config test fails
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WATCH_DIR` | `/etc/nginx` | Directory to watch for config changes |
+| `RELOADER_LOG` | `/var/log/nginx/reloader.log` | Log file path |
+
+### Example Usage
+
+```bash
+# Watch only conf.d directory
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e WATCH_DIR=/etc/nginx/conf.d \
+  denis256/nginx-f1:latest
+```
+
+### Monitoring Reloader
+
+```bash
+# Check reloader status
+docker exec nginx-f1 supervisorctl status nginx-reloader
+
+# View reloader logs
+docker exec nginx-f1 tail -f /var/log/nginx/reloader.log
+
+# Or supervisor logs
+docker exec nginx-f1 tail -f /var/log/supervisor/nginx-reloader.log
+```
+
+### Example Log Output
+
+```
+[2024-01-15 10:30:00] Starting nginx-reloader, watching: /etc/nginx for *.conf files
+[2024-01-15 10:35:22] Detected change in: default.conf
+[2024-01-15 10:35:22] Config valid, executing: nginx -s reload
+[2024-01-15 10:40:15] Ignored non-conf file: nginx.pid
+```
+
 ## 📊 Monitoring & Logs
 
 ### Status Endpoints
@@ -366,6 +415,7 @@ docker run -d --name nginx-test \
 | `/var/log/nginx/logrotate-manager.log` | Logrotate manager logs                           |
 | `/var/log/nginx/logrotate-cron.log`    | Cron job logs                                    |
 | `/var/log/nginx/disk-cleanup.log`      | Disk cleanup daemon logs                         |
+| `/var/log/nginx/reloader.log`          | Nginx config reloader logs                       |
 | `/var/log/supervisor/`                 | Supervisord logs (when using supervisord method) |
 
 ### Manual Operations
@@ -496,6 +546,7 @@ nginx-f1/
 | **Permission denied**        | Ensure proper file permissions and ownership                             |
 | **High memory usage**        | Consider using `LOGROTATE_METHOD=daemon` for lightweight deployments     |
 | **Disk full / logs growing** | Enable `ENABLE_DISK_CLEANUP=true` with appropriate thresholds            |
+| **Constant nginx reloads**   | Check reloader log: `tail -f /var/log/nginx/reloader.log`                |
 
 ### Debug Commands
 
