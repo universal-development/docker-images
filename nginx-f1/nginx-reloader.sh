@@ -15,17 +15,14 @@ log "Starting nginx-reloader, watching: ${WATCH_DIR} for *.conf files (delay: ${
 
 while true
 do
- FILE=$(inotifywait --recursive --format '%f' -e create -e modify -e delete -e move "${WATCH_DIR}" 2>/dev/null)
-
- if [[ "${FILE}" == *.conf ]]; then
-  sleep "${RELOADER_DELAY}"
-  log "Detected: ${FILE}"
-  nginx -t
-  if [[ $? -eq 0 ]]; then
-   log "Config valid, reloading nginx"
-   nginx -s reload
-  else
-   log "Config test failed, skipping reload"
-  fi
+ sleep "${RELOADER_DELAY}"
+ FILE=$(inotifywait --recursive --include '\.conf$' --format '%f' -e create -e modify -e delete -e move "${WATCH_DIR}" 2>/dev/null)
+ log "Detected: ${FILE}"
+ nginx -t
+ if [[ $? -eq 0 ]]; then
+  log "Config valid, reloading nginx"
+  nginx -s reload
+ else
+  log "Config test failed, skipping reload"
  fi
 done
