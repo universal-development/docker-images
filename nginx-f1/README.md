@@ -364,6 +364,7 @@ The `nginx-reloader` daemon watches for configuration file changes and automatic
 |----------|---------|-------------|
 | `WATCH_DIR` | `/etc/nginx` | Directory to watch for config changes |
 | `RELOADER_LOG` | `/var/log/nginx/reloader.log` | Log file path |
+| `RELOADER_DELAY` | `2` | Delay in seconds before reload (batches rapid changes) |
 
 ### Example Usage
 
@@ -391,10 +392,9 @@ docker exec nginx-f1 tail -f /var/log/supervisor/nginx-reloader.log
 ### Example Log Output
 
 ```
-[2024-01-15 10:30:00] Starting nginx-reloader, watching: /etc/nginx for *.conf files
-[2024-01-15 10:35:22] Detected change in: default.conf
-[2024-01-15 10:35:22] Config valid, executing: nginx -s reload
-[2024-01-15 10:40:15] Ignored non-conf file: nginx.pid
+[2024-01-15 10:30:00] Starting nginx-reloader, watching: /etc/nginx for *.conf files (delay: 2s)
+[2024-01-15 10:35:22] Detected: default.conf
+[2024-01-15 10:35:22] Config valid, reloading nginx
 ```
 
 ## 📊 Monitoring & Logs
