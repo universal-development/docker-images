@@ -353,10 +353,23 @@ The `nginx-reloader` daemon watches for configuration file changes and automatic
 
 ### How It Works
 
-1. **Watches directory** using `inotifywait` (default: `/etc/nginx`)
-2. **Filters by extension** - only `*.conf` files trigger reload
-3. **Validates config** - runs `nginx -t` before reloading
-4. **Safe reload** - skips reload if config test fails
+1. **Computes hash** of all `*.conf` files on startup (MD5 checksum)
+2. **Watches directory** using `inotifywait` for any file events
+3. **Recomputes hash** after detecting file activity
+4. **Compares hashes** - only proceeds if content actually changed
+5. **Validates config** - runs `nginx -t` before reloading
+6. **Safe reload** - skips reload if config test fails
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Hash-based detection** | Only reloads when `.conf` file content actually changes |
+| **Ignores non-conf files** | Log files, temp files, PIDs don't trigger reload |
+| **Ignores file touches** | Timestamp changes without content change are ignored |
+| **Batches rapid changes** | Multiple quick edits result in single reload |
+| **Pre-flight checks** | Validates `inotifywait`, `nginx`, and `WATCH_DIR` exist |
+| **Safe reload** | Always runs `nginx -t` before reload |
 
 ### Configuration Options
 
@@ -364,7 +377,7 @@ The `nginx-reloader` daemon watches for configuration file changes and automatic
 |----------|---------|-------------|
 | `WATCH_DIR` | `/etc/nginx` | Directory to watch for config changes |
 | `RELOADER_LOG` | `/var/log/nginx/reloader.log` | Log file path |
-| `RELOADER_DELAY` | `2` | Delay in seconds before reload (batches rapid changes) |
+| `RELOADER_DELAY` | `2` | Delay in seconds before checking (batches rapid changes) |
 
 ### Example Usage
 
@@ -373,6 +386,12 @@ The `nginx-reloader` daemon watches for configuration file changes and automatic
 docker run -d --name nginx-f1 \
   -p 80:80 \
   -e WATCH_DIR=/etc/nginx/conf.d \
+  denis256/nginx-f1:latest
+
+# Faster response (1 second delay)
+docker run -d --name nginx-f1 \
+  -p 80:80 \
+  -e RELOADER_DELAY=1 \
   denis256/nginx-f1:latest
 ```
 
@@ -392,10 +411,21 @@ docker exec nginx-f1 tail -f /var/log/supervisor/nginx-reloader.log
 ### Example Log Output
 
 ```
-[2024-01-15 10:30:00] Starting nginx-reloader, watching: /etc/nginx for *.conf files (delay: 2s)
-[2024-01-15 10:35:22] Detected: default.conf
+[2024-01-15 10:30:00] Starting nginx-reloader v3
+[2024-01-15 10:30:00] Config: WATCH_DIR=/etc/nginx DELAY=2s
+[2024-01-15 10:30:00] Initial config hash: a1b2c3d4e5f67890
+[2024-01-15 10:35:22] Config changed: a1b2c3d4e5f67890 -> 0987f6e5d4c3b2a1
 [2024-01-15 10:35:22] Config valid, reloading nginx
 ```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Reloader not starting | Check logs: `docker exec nginx-f1 cat /var/log/supervisor/nginx-reloader.log` |
+| Changes not detected | Verify `WATCH_DIR` is correct and contains `.conf` files |
+| Too many reloads | Increase `RELOADER_DELAY` to batch rapid changes |
+| No reloads happening | Check if file content actually changed (hash-based detection) |
 
 ## 📊 Monitoring & Logs
 
