@@ -51,10 +51,12 @@ do
  log "Config changed: ${LAST_HASH} -> ${NEW_HASH}"
  LAST_HASH="${NEW_HASH}"
 
- if nginx -t 2>/dev/null; then
+ TEST_OUTPUT=$(nginx -t 2>&1)
+ if [[ $? -eq 0 ]]; then
   log "Config valid, reloading nginx"
   nginx -s reload 2>/dev/null || log "Reload failed"
  else
   log "Config test failed, skipping reload"
+  log "Error: ${TEST_OUTPUT}"
  fi
 done
