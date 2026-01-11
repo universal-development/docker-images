@@ -17,6 +17,11 @@ while true
 do
  sleep "${RELOADER_DELAY}"
  FILE=$(inotifywait --recursive --include '\.conf$' --format '%f' -e create -e modify -e delete -e move "${WATCH_DIR}" 2>/dev/null)
+
+ if [[ -z "${FILE}" ]]; then
+  continue
+ fi
+
  log "Detected: ${FILE}"
  nginx -t
  if [[ $? -eq 0 ]]; then
