@@ -4,14 +4,17 @@ ARG KUBECTL_VERSION=v1.32.3
 ARG HELM_VERSION=v3.17.0
 ARG HCLOUD_VERSION=v1.50.0
 ARG TERRAFORM_VERSION=1.11.4
-ARG TERRAGRUNT_VERSION=0.77.20
+ARG TERRAGRUNT_VERSION=1.0.0-rc1
 ARG CIVO_VERSION=1.2.1
 ARG ALIYUN_VERSION=3.0.270
-ARG USER_ID=1001
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
-    PATH=/root/.tfenv/bin:/root/.tgenv/bin:$PATH
+    TFENV_ROOT=/opt/tfenv \
+    TGENV_ROOT=/opt/tgenv \
+    PATH=/opt/tfenv/bin:/opt/tgenv/bin:$PATH
 
 # Install base packages and tools in a single layer
 # This reduces the number of layers and image size
@@ -33,6 +36,9 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     lsb-release \
     restic \
     rclone \
+    iputils-ping \
+    netcat-openbsd \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker client
@@ -61,12 +67,10 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
 # Create a temporary working directory
 WORKDIR /tmp/downloads
 
-# Install tfenv and tgenv for Terraform and Terragrunt version management
-RUN mkdir -p ~/.tfenv ~/.tgenv \
-    && git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv \
-    && git clone --depth=1 https://github.com/cunymatthieu/tgenv.git ~/.tgenv \
-    && echo 'export PATH="${HOME}/.tfenv/bin:${PATH}"' >> ~/.bash_profile \
-    && echo 'export PATH="$HOME/.tgenv/bin:$PATH"' >> ~/.bash_profile
+# Install tfenv and tgenv in shared location
+RUN git clone --depth=1 https://github.com/tfutils/tfenv.git /opt/tfenv \
+    && git clone --depth=1 https://github.com/cunymatthieu/tgenv.git /opt/tgenv \
+    && chmod -R a+rx /opt/tfenv /opt/tgenv
 
 # Install kubectl using the ARG value and create symbolic link 'k'
 RUN wget https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/bin/kubectl \
@@ -107,11 +111,20 @@ RUN curl -sL https://aliyuncli.alicdn.com/aliyun-cli-linux-${ALIYUN_VERSION}-amd
 RUN tfenv install ${TERRAFORM_VERSION} \
     && tfenv use ${TERRAFORM_VERSION} \
     && tgenv install ${TERRAGRUNT_VERSION} \
+    && chmod -R a+rx /opt/tfenv /opt/tgenv \
     && terraform --version \
     && terragrunt --version
 
-RUN groupadd user && groupadd guide \
-    && useradd -m -u ${USER_ID} -g user -G guide -s /bin/bash user
+# Ensure ubuntu user exists with correct uid/gid and has home directory
+RUN usermod -u ${USER_ID} -s /bin/bash ubuntu \
+    && groupmod -g ${GROUP_ID} ubuntu \
+    && mkdir -p /home/ubuntu \
+    && chown -R ubuntu:ubuntu /home/ubuntu
+
+# Ensure all tools accessible to ubuntu user
+RUN chmod -R a+rx /opt/tfenv /opt/tgenv \
+    && chmod a+rx /usr/bin/kubectl /usr/local/bin/helm /usr/local/bin/hcloud \
+    && chmod a+rx /usr/local/bin/civo /usr/local/bin/aliyun
 
 WORKDIR /
 RUN rm -rf /tmp/downloads
@@ -119,4 +132,6 @@ RUN rm -rf /tmp/downloads
 RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc \
     && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun"' >> /etc/bash.bashrc
 
+USER ubuntu
+WORKDIR /home/ubuntu
 CMD ["/bin/bash"]
