@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     iputils-ping \
     netcat-openbsd \
     dnsutils \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker client
@@ -120,6 +121,10 @@ RUN usermod -u ${USER_ID} -s /bin/bash ubuntu \
     && groupmod -g ${GROUP_ID} ubuntu \
     && mkdir -p /home/ubuntu \
     && chown -R ubuntu:ubuntu /home/ubuntu
+
+# Configure passwordless sudo for ubuntu user
+RUN echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
+    && chmod 0440 /etc/sudoers.d/ubuntu
 
 # Ensure all tools accessible to ubuntu user
 RUN chmod -R a+rx /opt/tfenv /opt/tgenv \
