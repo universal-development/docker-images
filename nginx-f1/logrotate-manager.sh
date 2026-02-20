@@ -115,17 +115,17 @@ transfer_via_scp() {
         return 1
     fi
     
-    local ssh_opts="-i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no"
+    local ssh_opts="-i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
     local date_subdir="$(date +%Y-%m)/$(date +%d)"
     local remote_dest="$REMOTE_PATH/$date_subdir"
 
     # Create remote date-based directory
-    ssh $ssh_opts "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $remote_dest"
+    timeout 30 ssh $ssh_opts "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $remote_dest"
 
     # Transfer archived files
     for f in "$ARCHIVE_DIR"/*.gz; do
         if [ -f "$f" ]; then
-            scp $ssh_opts "$f" "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+            timeout 120 scp $ssh_opts "$f" "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
             log_message "Transferred: $remote_dest/$(basename $f)"
         fi
     done
@@ -138,7 +138,7 @@ transfer_via_sftp() {
         return 1
     fi
 
-    local sftp_opts="-P $SSH_PORT -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -o BatchMode=yes"
+    local sftp_opts="-P $SSH_PORT -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
     local batch_file=$(mktemp /tmp/sftp-batch-XXXXXX)
     local date_subdir="$(date +%Y-%m)/$(date +%d)"
     local remote_dest="$REMOTE_PATH/$date_subdir"
@@ -168,7 +168,7 @@ transfer_via_sftp() {
     fi
 
     # Execute sftp batch
-    if sftp $sftp_opts -b "$batch_file" "$REMOTE_USER@$REMOTE_HOST" >> "$LOG_FILE" 2>&1; then
+    if timeout 120 sftp $sftp_opts -b "$batch_file" "$REMOTE_USER@$REMOTE_HOST" >> "$LOG_FILE" 2>&1; then
         log_message "Transferred $file_count files to remote via SFTP"
     else
         log_message "SFTP transfer failed (exit code $?)"
@@ -186,11 +186,11 @@ transfer_via_rsync() {
         return 1
     fi
     
-    local rsync_opts="-avz -e 'ssh -i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no'"
+    local rsync_opts="-avz -e 'ssh -i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30'"
     local date_subdir="$(date +%Y-%m)/$(date +%d)"
     local remote_dest="$REMOTE_PATH/$date_subdir"
 
-    eval "rsync $rsync_opts $ARCHIVE_DIR/ $REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+    eval "timeout 120 rsync $rsync_opts $ARCHIVE_DIR/ $REMOTE_USER@$REMOTE_HOST:$remote_dest/"
     log_message "Synchronized logs to remote via rsync: $remote_dest/"
 }
 

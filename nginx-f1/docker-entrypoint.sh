@@ -10,6 +10,18 @@ setup_logrotate_cron() {
     fi
 }
 
+# Function to enable logrotate-daemon when LOGROTATE_INTERVAL is set
+setup_logrotate_daemon() {
+    if [ -n "${LOGROTATE_INTERVAL}" ] && [ "${LOGROTATE_INTERVAL}" != "86400" ]; then
+        echo "Logrotate daemon enabled (interval: ${LOGROTATE_INTERVAL}s)"
+        if [ -f /etc/supervisor/conf.d/supervisord.conf ]; then
+            sed -i '/\[program:logrotate-daemon\]/,/priority=175/{s/autostart=false/autostart=true/}' /etc/supervisor/conf.d/supervisord.conf
+        fi
+        # Remove cron job to prevent double rotation
+        rm -f /etc/cron.d/nginx-logrotate
+    fi
+}
+
 # Function to setup disk cleanup daemon
 setup_disk_cleanup() {
     if [ "${ENABLE_DISK_CLEANUP:-false}" = "true" ]; then
@@ -75,6 +87,7 @@ should_use_supervisord() {
 setup_log_directories
 configure_logrotate
 setup_logrotate_cron
+setup_logrotate_daemon
 setup_disk_cleanup
 
 # Determine logrotate method and start accordingly
