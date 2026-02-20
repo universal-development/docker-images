@@ -10,7 +10,6 @@ REMOTE_HOST=${LOGROTATE_REMOTE_HOST:-}
 REMOTE_USER=${LOGROTATE_REMOTE_USER:-}
 REMOTE_PATH=${LOGROTATE_REMOTE_PATH:-/var/log/nginx-archive}
 REMOTE_METHOD=${LOGROTATE_REMOTE_METHOD:-scp}  # scp, sftp, rsync, s3
-COMPRESS_ARCHIVE=${LOGROTATE_COMPRESS_ARCHIVE:-true}
 CLEANUP_AFTER_REMOTE=${LOGROTATE_CLEANUP_AFTER_REMOTE:-false}
 ENABLE_ARCHIVE=${LOGROTATE_ENABLE_ARCHIVE:-true}
 ENABLE_REMOTE=${LOGROTATE_ENABLE_REMOTE:-false}
@@ -61,37 +60,19 @@ archive_logs() {
     
     create_archive_dir
     
-    # Move rotated logs to archive directory
+    # Move and gzip rotated logs individually to archive directory
     for log_file in $rotated_logs; do
         if [ -f "$log_file" ]; then
             local filename=$(basename "$log_file")
             local archive_file="$ARCHIVE_DIR/${filename}.$(date +%Y%m%d_%H%M%S)"
-            
-            # Move the file to archive directory
+
             mv "$log_file" "$archive_file"
-            chown www-data:www-data "$archive_file"
-            
-            log_message "Archived: $log_file -> $archive_file"
+            gzip "$archive_file"
+            chown www-data:www-data "${archive_file}.gz"
+
+            log_message "Archived: $log_file -> ${archive_file}.gz"
         fi
     done
-    
-    # Create compressed archive if enabled
-    if [ "$COMPRESS_ARCHIVE" = "true" ]; then
-        local archive_name="nginx-logs-$(date +%Y%m%d).tar.gz"
-        local archive_path="$ARCHIVE_DIR/$archive_name"
-        
-        # Create compressed archive of today's logs
-        cd "$ARCHIVE_DIR"
-        local today=$(date +%Y%m%d)
-        tar -czf "$archive_path" *."${today}"_* 2>/dev/null || true
-        
-        if [ -f "$archive_path" ]; then
-            chown www-data:www-data "$archive_path"
-            # Remove individual files after successful tar
-            rm -f *."${today}"_*
-            log_message "Created compressed archive: $archive_path"
-        fi
-    fi
 }
 
 # Function to transfer logs to remote location
@@ -141,20 +122,13 @@ transfer_via_scp() {
     # Create remote date-based directory
     ssh $ssh_opts "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $remote_dest"
 
-    # Transfer archive files
-    if [ "$COMPRESS_ARCHIVE" = "true" ]; then
-        local archive_name="nginx-logs-$(date +%Y%m%d).tar.gz"
-        local archive_path="$ARCHIVE_DIR/$archive_name"
-
-        if [ -f "$archive_path" ]; then
-            scp $ssh_opts "$archive_path" "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
-            log_message "Transferred compressed archive to remote: $remote_dest/$archive_name"
+    # Transfer archived files
+    for f in "$ARCHIVE_DIR"/*.gz; do
+        if [ -f "$f" ]; then
+            scp $ssh_opts "$f" "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+            log_message "Transferred: $remote_dest/$(basename $f)"
         fi
-    else
-        # Transfer individual files
-        scp $ssh_opts "$ARCHIVE_DIR"/* "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
-        log_message "Transferred individual log files to remote: $remote_dest/"
-    fi
+    done
 }
 
 # Function to transfer via SFTP (batch mode — works with SFTP-only servers)
@@ -178,23 +152,14 @@ transfer_via_sftp() {
     echo "-mkdir $REMOTE_PATH/$(date +%Y-%m)" >> "$batch_file"
     echo "-mkdir $remote_dest" >> "$batch_file"
 
-    # Add files to upload
+    # Add archived files to upload
     local file_count=0
-    if [ "$COMPRESS_ARCHIVE" = "true" ]; then
-        for f in "$ARCHIVE_DIR"/nginx-logs-*.tar.gz; do
-            if [ -f "$f" ]; then
-                echo "put $f $remote_dest/" >> "$batch_file"
-                file_count=$((file_count + 1))
-            fi
-        done
-    else
-        for f in "$ARCHIVE_DIR"/*; do
-            if [ -f "$f" ]; then
-                echo "put $f $remote_dest/" >> "$batch_file"
-                file_count=$((file_count + 1))
-            fi
-        done
-    fi
+    for f in "$ARCHIVE_DIR"/*.gz; do
+        if [ -f "$f" ]; then
+            echo "put $f $remote_dest/" >> "$batch_file"
+            file_count=$((file_count + 1))
+        fi
+    done
 
     if [ "$file_count" -eq 0 ]; then
         log_message "No files to transfer via SFTP"
@@ -252,18 +217,12 @@ transfer_via_s3() {
     # Upload to S3
     local s3_path="s3://$S3_BUCKET/$S3_PREFIX/$(date +%Y/%m/%d)/"
     
-    if [ "$COMPRESS_ARCHIVE" = "true" ]; then
-        local archive_name="nginx-logs-$(date +%Y%m%d).tar.gz"
-        local archive_path="$ARCHIVE_DIR/$archive_name"
-        
-        if [ -f "$archive_path" ]; then
-            aws s3 cp "$archive_path" "$s3_path"
-            log_message "Uploaded compressed archive to S3: $s3_path$archive_name"
+    for f in "$ARCHIVE_DIR"/*.gz; do
+        if [ -f "$f" ]; then
+            aws s3 cp "$f" "$s3_path"
+            log_message "Uploaded to S3: $s3_path$(basename $f)"
         fi
-    else
-        aws s3 sync "$ARCHIVE_DIR/" "$s3_path"
-        log_message "Synchronized logs to S3: $s3_path"
-    fi
+    done
 }
 
 # Function to cleanup local archives after remote transfer
