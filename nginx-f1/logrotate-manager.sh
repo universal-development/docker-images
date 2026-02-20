@@ -51,8 +51,8 @@ archive_logs() {
     
     log_message "Starting log archiving process"
     
-    # Find recently rotated logs (compressed files from today)
-    local rotated_logs=$(find /var/log/nginx -name "*.log.*" -type f -mtime -1 2>/dev/null || true)
+    # Find recently rotated logs (top-level only, skip archive dir)
+    local rotated_logs=$(find /var/log/nginx -maxdepth 1 -name "*.log.*" -type f -mtime -1 2>/dev/null || true)
     
     if [ -z "$rotated_logs" ]; then
         log_message "No rotated logs found to archive"
@@ -82,10 +82,13 @@ archive_logs() {
         
         # Create compressed archive of today's logs
         cd "$ARCHIVE_DIR"
-        tar -czf "$archive_path" *.$(date +%Y%m%d_*) 2>/dev/null || true
+        local today=$(date +%Y%m%d)
+        tar -czf "$archive_path" *."${today}"_* 2>/dev/null || true
         
         if [ -f "$archive_path" ]; then
             chown www-data:www-data "$archive_path"
+            # Remove individual files after successful tar
+            rm -f *."${today}"_*
             log_message "Created compressed archive: $archive_path"
         fi
     fi
@@ -132,23 +135,25 @@ transfer_via_scp() {
     fi
     
     local ssh_opts="-i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no"
-    
-    # Create remote directory if it doesn't exist
-    ssh $ssh_opts "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $REMOTE_PATH"
-    
+    local date_subdir="$(date +%Y-%m)/$(date +%d)"
+    local remote_dest="$REMOTE_PATH/$date_subdir"
+
+    # Create remote date-based directory
+    ssh $ssh_opts "$REMOTE_USER@$REMOTE_HOST" "mkdir -p $remote_dest"
+
     # Transfer archive files
     if [ "$COMPRESS_ARCHIVE" = "true" ]; then
         local archive_name="nginx-logs-$(date +%Y%m%d).tar.gz"
         local archive_path="$ARCHIVE_DIR/$archive_name"
-        
+
         if [ -f "$archive_path" ]; then
-            scp $ssh_opts "$archive_path" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/"
-            log_message "Transferred compressed archive to remote: $archive_path"
+            scp $ssh_opts "$archive_path" "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+            log_message "Transferred compressed archive to remote: $remote_dest/$archive_name"
         fi
     else
         # Transfer individual files
-        scp $ssh_opts "$ARCHIVE_DIR"/* "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/"
-        log_message "Transferred individual log files to remote"
+        scp $ssh_opts "$ARCHIVE_DIR"/* "$REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+        log_message "Transferred individual log files to remote: $remote_dest/"
     fi
 }
 
@@ -161,27 +166,31 @@ transfer_via_sftp() {
 
     local sftp_opts="-P $SSH_PORT -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -o BatchMode=yes"
     local batch_file=$(mktemp /tmp/sftp-batch-XXXXXX)
+    local date_subdir="$(date +%Y-%m)/$(date +%d)"
+    local remote_dest="$REMOTE_PATH/$date_subdir"
 
-    # Create remote directories (dash prefix = ignore errors if already exists)
+    # Create remote date-based directories (dash prefix = ignore errors if already exists)
     local parent_dir=$(dirname "$REMOTE_PATH")
     if [ "$parent_dir" != "/" ] && [ "$parent_dir" != "." ]; then
         echo "-mkdir $parent_dir" >> "$batch_file"
     fi
     echo "-mkdir $REMOTE_PATH" >> "$batch_file"
+    echo "-mkdir $REMOTE_PATH/$(date +%Y-%m)" >> "$batch_file"
+    echo "-mkdir $remote_dest" >> "$batch_file"
 
     # Add files to upload
     local file_count=0
     if [ "$COMPRESS_ARCHIVE" = "true" ]; then
         for f in "$ARCHIVE_DIR"/nginx-logs-*.tar.gz; do
             if [ -f "$f" ]; then
-                echo "put $f $REMOTE_PATH/" >> "$batch_file"
+                echo "put $f $remote_dest/" >> "$batch_file"
                 file_count=$((file_count + 1))
             fi
         done
     else
         for f in "$ARCHIVE_DIR"/*; do
             if [ -f "$f" ]; then
-                echo "put $f $REMOTE_PATH/" >> "$batch_file"
+                echo "put $f $remote_dest/" >> "$batch_file"
                 file_count=$((file_count + 1))
             fi
         done
@@ -213,9 +222,11 @@ transfer_via_rsync() {
     fi
     
     local rsync_opts="-avz -e 'ssh -i $SSH_KEY_PATH -p $SSH_PORT -o StrictHostKeyChecking=no'"
-    
-    eval "rsync $rsync_opts $ARCHIVE_DIR/ $REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/"
-    log_message "Synchronized logs to remote via rsync"
+    local date_subdir="$(date +%Y-%m)/$(date +%d)"
+    local remote_dest="$REMOTE_PATH/$date_subdir"
+
+    eval "rsync $rsync_opts $ARCHIVE_DIR/ $REMOTE_USER@$REMOTE_HOST:$remote_dest/"
+    log_message "Synchronized logs to remote via rsync: $remote_dest/"
 }
 
 # Function to transfer via S3
