@@ -9,7 +9,7 @@ ARCHIVE_DIR=${LOGROTATE_ARCHIVE_DIR:-/var/log/nginx/archive}
 REMOTE_HOST=${LOGROTATE_REMOTE_HOST:-}
 REMOTE_USER=${LOGROTATE_REMOTE_USER:-}
 REMOTE_PATH=${LOGROTATE_REMOTE_PATH:-/var/log/nginx-archive}
-REMOTE_METHOD=${LOGROTATE_REMOTE_METHOD:-scp}  # scp, rsync, s3, etc.
+REMOTE_METHOD=${LOGROTATE_REMOTE_METHOD:-scp}  # scp, sftp, rsync, s3
 COMPRESS_ARCHIVE=${LOGROTATE_COMPRESS_ARCHIVE:-true}
 CLEANUP_AFTER_REMOTE=${LOGROTATE_CLEANUP_AFTER_REMOTE:-false}
 ENABLE_ARCHIVE=${LOGROTATE_ENABLE_ARCHIVE:-true}
@@ -108,6 +108,9 @@ transfer_to_remote() {
         "scp")
             transfer_via_scp
             ;;
+        "sftp")
+            transfer_via_sftp
+            ;;
         "rsync")
             transfer_via_rsync
             ;;
@@ -147,6 +150,59 @@ transfer_via_scp() {
         scp $ssh_opts "$ARCHIVE_DIR"/* "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/"
         log_message "Transferred individual log files to remote"
     fi
+}
+
+# Function to transfer via SFTP (batch mode — works with SFTP-only servers)
+transfer_via_sftp() {
+    if [ -z "$REMOTE_HOST" ] || [ -z "$REMOTE_USER" ]; then
+        log_message "SFTP transfer requires REMOTE_HOST and REMOTE_USER"
+        return 1
+    fi
+
+    local sftp_opts="-P $SSH_PORT -i $SSH_KEY_PATH -o StrictHostKeyChecking=no -o BatchMode=yes"
+    local batch_file=$(mktemp /tmp/sftp-batch-XXXXXX)
+
+    # Create remote directories (dash prefix = ignore errors if already exists)
+    local parent_dir=$(dirname "$REMOTE_PATH")
+    if [ "$parent_dir" != "/" ] && [ "$parent_dir" != "." ]; then
+        echo "-mkdir $parent_dir" >> "$batch_file"
+    fi
+    echo "-mkdir $REMOTE_PATH" >> "$batch_file"
+
+    # Add files to upload
+    local file_count=0
+    if [ "$COMPRESS_ARCHIVE" = "true" ]; then
+        for f in "$ARCHIVE_DIR"/nginx-logs-*.tar.gz; do
+            if [ -f "$f" ]; then
+                echo "put $f $REMOTE_PATH/" >> "$batch_file"
+                file_count=$((file_count + 1))
+            fi
+        done
+    else
+        for f in "$ARCHIVE_DIR"/*; do
+            if [ -f "$f" ]; then
+                echo "put $f $REMOTE_PATH/" >> "$batch_file"
+                file_count=$((file_count + 1))
+            fi
+        done
+    fi
+
+    if [ "$file_count" -eq 0 ]; then
+        log_message "No files to transfer via SFTP"
+        rm -f "$batch_file"
+        return 0
+    fi
+
+    # Execute sftp batch
+    if sftp $sftp_opts -b "$batch_file" "$REMOTE_USER@$REMOTE_HOST" >> "$LOG_FILE" 2>&1; then
+        log_message "Transferred $file_count files to remote via SFTP"
+    else
+        log_message "SFTP transfer failed (exit code $?)"
+        rm -f "$batch_file"
+        return 1
+    fi
+
+    rm -f "$batch_file"
 }
 
 # Function to transfer via rsync
