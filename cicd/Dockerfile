@@ -108,6 +108,20 @@ RUN curl -sL https://aliyuncli.alicdn.com/aliyun-cli-linux-${ALIYUN_VERSION}-amd
     && chmod +x /usr/local/bin/aliyun \
     && aliyun --version
 
+# Install OpenStack CLI tools (unified client + service clients)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    python-openstackclient \
+    python-heatclient \
+    python-neutronclient \
+    python-cinderclient \
+    python-glanceclient \
+    python-swiftclient \
+    python-octaviaclient \
+    python-designateclient \
+    python-barbicanclient \
+    python-magnumclient \
+    && openstack --version
+
 # Install specific versions of Terraform and Terragrunt
 RUN tfenv install ${TERRAFORM_VERSION} \
     && tfenv use ${TERRAFORM_VERSION} \
@@ -135,7 +149,7 @@ WORKDIR /
 RUN rm -rf /tmp/downloads
 
 RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc \
-    && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun"' >> /etc/bash.bashrc
+    && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun, openstack"' >> /etc/bash.bashrc
 
 USER ubuntu
 WORKDIR /home/ubuntu
