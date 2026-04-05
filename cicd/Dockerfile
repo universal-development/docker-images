@@ -1,12 +1,13 @@
 FROM ubuntu:24.04
 
 ARG KUBECTL_VERSION=v1.32.3
-ARG HELM_VERSION=v3.17.0
+ARG HELM_VERSION=v3.20.0
 ARG HCLOUD_VERSION=v1.50.0
-ARG TERRAFORM_VERSION=1.11.4
-ARG TERRAGRUNT_VERSION=1.0.0-rc1
+ARG TERRAFORM_VERSION=1.14.8
+ARG TERRAGRUNT_VERSION=1.0.0
 ARG CIVO_VERSION=1.2.1
 ARG ALIYUN_VERSION=3.0.270
+ARG OPENTOFU_VERSION=1.11.5
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
@@ -122,6 +123,14 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     python-magnumclient \
     && openstack --version
 
+# Install OpenTofu
+RUN curl -sL https://github.com/opentofu/opentofu/releases/download/v${OPENTOFU_VERSION}/tofu_${OPENTOFU_VERSION}_linux_amd64.zip -o tofu.zip \
+    && unzip tofu.zip -d /tmp/tofu \
+    && mv /tmp/tofu/tofu /usr/local/bin/tofu \
+    && chmod +x /usr/local/bin/tofu \
+    && rm -rf tofu.zip /tmp/tofu \
+    && tofu --version
+
 # Install specific versions of Terraform and Terragrunt
 RUN tfenv install ${TERRAFORM_VERSION} \
     && tfenv use ${TERRAFORM_VERSION} \
@@ -143,13 +152,14 @@ RUN echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
 # Ensure all tools accessible to ubuntu user
 RUN chmod -R a+rx /opt/tfenv /opt/tgenv \
     && chmod a+rx /usr/bin/kubectl /usr/local/bin/helm /usr/local/bin/hcloud \
-    && chmod a+rx /usr/local/bin/civo /usr/local/bin/aliyun
+    && chmod a+rx /usr/local/bin/civo /usr/local/bin/aliyun /usr/local/bin/tofu
 
 WORKDIR /
 RUN rm -rf /tmp/downloads
 
 RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc \
-    && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun, openstack"' >> /etc/bash.bashrc
+    && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun, openstack"' >> /etc/bash.bashrc \
+    && echo 'echo "IaC tools available: terraform, tofu, terragrunt"' >> /etc/bash.bashrc
 
 USER ubuntu
 WORKDIR /home/ubuntu
