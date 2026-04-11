@@ -96,6 +96,20 @@ services:
 The image includes comprehensive logrotate functionality with multiple process management options and remote archiving
 capabilities.
 
+### How Log Rotation Works
+
+Nginx holds open file descriptors to its log files. A correct rotation must coordinate the file rename with nginx's fd lifecycle via the `USR1` signal. The sequence is:
+
+```
+1. logrotate renames:   access.log  ->  access.log.1
+2. logrotate creates:   new empty access.log  (via `create 644 www-data www-data`)
+3. postrotate:          kill -USR1 $(cat /var/run/nginx.pid)
+4. nginx:               closes old fd (access.log.1), opens new access.log
+5. postrotate:          logrotate-manager.sh archives & transfers rotated files
+```
+
+The `USR1` signal **must** be sent in `postrotate` (after the rename), not `prerotate`. If sent before the rename, nginx reopens the same file descriptor, the rename disconnects nginx from the new file, and the new log file stays at 0 bytes.
+
 ### Basic Logrotate Setup
 
 ```bash
@@ -574,6 +588,7 @@ nginx-f1/
 |------------------------------|--------------------------------------------------------------------------|
 | **Container won't start**    | Check nginx configuration: `docker exec nginx-f1 nginx -t`               |
 | **Log rotation not working** | Verify `LOGROTATE_METHOD` and check logs: `docker logs nginx-f1`         |
+| **Empty logs after rotation (0 bytes)** | USR1 signal must be in `postrotate`, not `prerotate` - see [How Log Rotation Works](#how-log-rotation-works) |
 | **Remote transfer failing**  | Check SSH keys and connectivity: `docker exec nginx-f1 ssh -T user@host` |
 | **Permission denied**        | Ensure proper file permissions and ownership                             |
 | **High memory usage**        | Consider using `LOGROTATE_METHOD=daemon` for lightweight deployments     |

@@ -135,6 +135,19 @@ logrotate_conf=$(cat "$SCRIPT_DIR/nginx-logrotate.conf")
 assert_contains "$logrotate_conf" "logrotate-manager.sh postrotate" "logrotate conf calls manager postrotate"
 
 # ═══════════════════════════════════════════════════════════════
+echo "=== Test: USR1 signal is in postrotate (not prerotate) ==="
+# ═══════════════════════════════════════════════════════════════
+# USR1 must be in postrotate so nginx reopens logs AFTER rotation.
+# If USR1 is in prerotate, nginx reopens old fds before rename,
+# then new files created by logrotate receive no data (0 bytes).
+logrotate_conf=$(cat "$SCRIPT_DIR/nginx-logrotate.conf")
+assert_not_contains "$logrotate_conf" "prerotate" "no prerotate block (USR1 must not be in prerotate)"
+
+# Extract postrotate block and verify USR1 is there
+postrotate_block=$(sed -n '/postrotate/,/endscript/p' "$SCRIPT_DIR/nginx-logrotate.conf")
+assert_contains "$postrotate_block" "kill -USR1" "USR1 signal is inside postrotate block"
+
+# ═══════════════════════════════════════════════════════════════
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 if [ "$FAIL" -gt 0 ]; then
