@@ -66,6 +66,27 @@ RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
     && apt-get install -yq --no-install-recommends google-cloud-cli google-cloud-sdk-gke-gcloud-auth-plugin \
     && rm -rf /var/lib/apt/lists/*
 
+# Install database client tools (PostgreSQL, MySQL, Redis, SQLite)
+RUN apt-get update && apt-get install -yq --no-install-recommends \
+    postgresql-client \
+    mysql-client \
+    redis-tools \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && psql --version \
+    && mysql --version \
+    && redis-cli --version \
+    && sqlite3 --version
+
+# Install MongoDB shell and database tools
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor -o /etc/apt/keyrings/mongodb-server-8.0.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/mongodb-server-8.0.gpg] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-8.0.list > /dev/null \
+    && apt-get update \
+    && apt-get install -yq --no-install-recommends mongodb-mongosh mongodb-database-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    && mongosh --version
+
 # Create a temporary working directory
 WORKDIR /tmp/downloads
 
@@ -110,7 +131,7 @@ RUN curl -sL https://aliyuncli.alicdn.com/aliyun-cli-linux-${ALIYUN_VERSION}-amd
     && aliyun --version
 
 # Install OpenStack CLI tools (unified client + service clients)
-RUN pip3 install --no-cache-dir --break-system-packages \
+RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed \
     python-openstackclient \
     python-heatclient \
     python-neutronclient \
@@ -159,7 +180,8 @@ RUN rm -rf /tmp/downloads
 
 RUN echo 'echo "Shortcut aliases available: k (kubectl), h (helm)"' >> /etc/bash.bashrc \
     && echo 'echo "Cloud CLIs available: aws, gcloud, hcloud, civo, az, aliyun, openstack"' >> /etc/bash.bashrc \
-    && echo 'echo "IaC tools available: terraform, tofu, terragrunt"' >> /etc/bash.bashrc
+    && echo 'echo "IaC tools available: terraform, tofu, terragrunt"' >> /etc/bash.bashrc \
+    && echo 'echo "DB clients available: psql, mysql, redis-cli, sqlite3, mongosh"' >> /etc/bash.bashrc
 
 USER ubuntu
 WORKDIR /home/ubuntu
